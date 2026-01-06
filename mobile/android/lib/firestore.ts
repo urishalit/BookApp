@@ -78,8 +78,13 @@ export async function createBook(
   memberId: string, 
   data: Omit<CreateBook, 'memberId' | 'addedAt'>
 ): Promise<string> {
+  // Filter out undefined values - Firestore doesn't accept them
+  const cleanData = Object.fromEntries(
+    Object.entries(data).filter(([_, value]) => value !== undefined)
+  );
+  
   const docRef = await booksCollection(familyId, memberId).add({
-    ...data,
+    ...cleanData,
     memberId,
     addedAt: serverTimestamp(),
   });

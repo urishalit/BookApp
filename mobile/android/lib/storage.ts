@@ -39,17 +39,18 @@ export async function uploadMemberAvatar(
  * @param uri Local file URI
  * @param familyId Family ID
  * @param memberId Member ID
- * @param bookId Book ID
+ * @param bookId Optional Book ID (if not provided, uses timestamp as identifier)
  * @returns Download URL
  */
 export async function uploadBookCover(
   uri: string,
   familyId: string,
   memberId: string,
-  bookId: string
+  bookId?: string
 ): Promise<string> {
   const timestamp = Date.now();
-  const path = `families/${familyId}/members/${memberId}/books/${bookId}/cover_${timestamp}.jpg`;
+  const identifier = bookId || `new_${timestamp}`;
+  const path = `families/${familyId}/members/${memberId}/books/${identifier}/cover_${timestamp}.jpg`;
   return uploadImage(uri, path);
 }
 

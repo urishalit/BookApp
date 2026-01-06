@@ -7,6 +7,7 @@ import 'react-native-reanimated';
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuthStateListener, useAuth } from '@/hooks/use-auth';
+import { useFamilyListener } from '@/hooks/use-family';
 import { configureGoogleSignIn } from '@/lib/google-signin';
 
 // Configure Google Sign-In
@@ -47,6 +48,9 @@ function AuthNavigator() {
   const { isAuthenticated, isInitialized, isLoading } = useAuth();
   const segments = useSegments();
   const router = useRouter();
+  
+  // Initialize family data when authenticated
+  useFamilyListener();
 
   useEffect(() => {
     if (!isInitialized) return;
@@ -76,6 +80,7 @@ function AuthNavigator() {
       <Stack.Screen name="(auth)" options={{ headerShown: false }} />
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       <Stack.Screen name="member" options={{ headerShown: false }} />
+      <Stack.Screen name="book" options={{ headerShown: false }} />
       <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
     </Stack>
   );

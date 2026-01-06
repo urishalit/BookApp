@@ -13,14 +13,11 @@ import { ThemedView } from '@/components/themed-view';
 import { MemberCard } from '@/components/member-card';
 import { MemberAvatar } from '@/components/member-avatar';
 import { IconSymbol } from '@/components/ui/icon-symbol';
-import { useFamily, useFamilyListener, useMemberOperations } from '@/hooks/use-family';
+import { useFamily, useMemberOperations } from '@/hooks/use-family';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import type { Member } from '@/types/models';
 
 export default function FamilyScreen() {
-  // Initialize family listener
-  useFamilyListener();
-
   const router = useRouter();
   const {
     family,
