@@ -1,0 +1,67 @@
+---
+description: Rules for writing and validating unit tests
+globs:
+  - "**/__tests__/**/*.test.ts"
+  - "**/__tests__/**/*.test.tsx"
+  - "**/jest.*.js"
+---
+
+# Testing Rules
+
+## Mutation Testing Requirement
+
+When adding or modifying unit tests, you MUST verify that tests are meaningful by performing mutation testing:
+
+### Process
+
+1. **After writing a test**, make a breaking change to the source code that the test is supposed to catch
+2. **Run the test** to confirm it fails with the breaking change
+3. **Revert the breaking change** and confirm the test passes
+4. **Document** which mutation was tested if asked
+
+### Types of Mutations to Test
+
+- **Return value mutations**: Change return values to wrong values (e.g., `return docRef.id` → `return 'BROKEN'`)
+- **Logic inversions**: Invert boolean logic (e.g., `!!user` → `!user`)
+- **String mutations**: Change error messages or string outputs
+- **Null/undefined mutations**: Return null instead of actual value
+- **Arithmetic mutations**: Change operators (e.g., `+` → `-`, `>` → `<`)
+
+### Example
+
+```typescript
+// Original code
+clearError: () => set({ error: null }),
+
+// Mutation to test
+clearError: () => set({ error: 'BUG: not cleared' }),
+
+// Expected: Test should FAIL with mutation
+// After reverting: Test should PASS
+```
+
+### Test Quality Checklist
+
+- [ ] Each test tests ONE specific behavior
+- [ ] Test name clearly describes what is being tested
+- [ ] At least one mutation was verified to fail
+- [ ] Mocks are properly reset between tests
+- [ ] Console output is silenced for expected errors
+
+## Test Structure
+
+```
+__tests__/
+├── stores/          # State management tests
+├── hooks/           # React hook tests
+├── lib/             # Utility/service tests
+└── components/      # Component tests (if applicable)
+```
+
+## Running Tests
+
+```bash
+npm test              # Run all tests
+npm run test:watch    # Watch mode
+npm run test:coverage # With coverage report
+```

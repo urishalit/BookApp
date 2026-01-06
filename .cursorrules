@@ -1,0 +1,40 @@
+# Family Book Keeper - Cursor Rules
+
+## Testing Requirements
+
+When writing unit tests, ALWAYS perform mutation testing to verify tests are meaningful:
+
+1. After writing a test, introduce a breaking change to the code being tested
+2. Run the test to confirm it FAILS
+3. Revert the change and confirm the test PASSES
+4. Only commit tests that have been verified this way
+
+### Example Mutations
+
+- Change `return value` to `return 'BROKEN'`
+- Invert boolean: `!!user` → `!user`
+- Change error messages
+- Return null instead of actual value
+
+### Test Commands
+
+```bash
+cd mobile/android
+npm test              # Run all tests
+npm run test:watch    # Watch mode  
+npm run test:coverage # With coverage
+```
+
+## Code Style
+
+- Use TypeScript strict mode
+- Follow existing patterns in the codebase
+- Keep functions small and focused
+- Add JSDoc comments for public APIs
+
+## Firebase/Expo
+
+- Run builds from `mobile/android/` directory
+- Native modules require dev client (not Expo Go)
+- Keep Firebase config files in project root
+
