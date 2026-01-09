@@ -11,12 +11,15 @@ import { useRouter } from 'expo-router';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { BookCard } from '@/components/book-card';
+import { SeriesRow } from '@/components/series-row';
 import { MemberAvatar } from '@/components/member-avatar';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useBooks, useBookOperations } from '@/hooks/use-books';
+import { useSeries } from '@/hooks/use-series';
 import { useFamily } from '@/hooks/use-family';
 import { useThemeColor } from '@/hooks/use-theme-color';
-import type { Book, BookStatus } from '@/types/models';
+import { groupBooksBySeries, getBookListItemKey, type BookListItem } from '@/lib/book-list-utils';
+import type { Book, BookStatus, Series } from '@/types/models';
 
 type FilterTab = 'all' | BookStatus;
 
@@ -33,6 +36,7 @@ export default function BooksScreen() {
   
   const { selectedMember, selectedMemberId } = useFamily();
   const { books, counts, isLoading, error } = useBooks(activeFilter);
+  const { series: seriesWithProgress } = useSeries();
   const { removeBook, updateBookStatus } = useBookOperations();
 
   const primaryColor = useThemeColor({ light: '#8B5A2B', dark: '#D4A574' }, 'text');
@@ -41,11 +45,32 @@ export default function BooksScreen() {
   const inactiveTabColor = useThemeColor({ light: '#999999', dark: '#666666' }, 'text');
   const tabBorderColor = useThemeColor({ light: '#E5D4C0', dark: '#2D3748' }, 'background');
 
+  /**
+   * Group books by series and create a combined list of items.
+   * Books with a seriesId are collapsed into a single SeriesRow.
+   * Books without a seriesId are shown as individual BookCards.
+   * Uses complete series data for accurate progress even when filtered.
+   */
+  const listItems = useMemo(
+    () => groupBooksBySeries(books, seriesWithProgress),
+    [books, seriesWithProgress]
+  );
+
   const handleBookPress = useCallback(
     (book: Book) => {
       router.push({
         pathname: '/book/[id]',
         params: { id: book.id },
+      });
+    },
+    [router]
+  );
+
+  const handleSeriesPress = useCallback(
+    (series: Series) => {
+      router.push({
+        pathname: '/series/[id]',
+        params: { id: series.id },
       });
     },
     [router]
@@ -110,16 +135,27 @@ export default function BooksScreen() {
     router.push('/(tabs)/family');
   }, [router]);
 
-  const renderBook = useCallback(
-    ({ item }: { item: Book }) => (
-      <BookCard
-        book={item}
-        onPress={() => handleBookPress(item)}
-        onLongPress={() => handleDeleteBook(item)}
-        onStatusPress={() => handleStatusPress(item)}
-      />
-    ),
-    [handleBookPress, handleDeleteBook, handleStatusPress]
+  const renderItem = useCallback(
+    ({ item }: { item: BookListItem }) => {
+      if (item.type === 'series') {
+        return (
+          <SeriesRow
+            series={item.series}
+            booksInSeries={item.books}
+            onPress={() => handleSeriesPress(item.series)}
+          />
+        );
+      }
+      return (
+        <BookCard
+          book={item.book}
+          onPress={() => handleBookPress(item.book)}
+          onLongPress={() => handleDeleteBook(item.book)}
+          onStatusPress={() => handleStatusPress(item.book)}
+        />
+      );
+    },
+    [handleBookPress, handleSeriesPress, handleDeleteBook, handleStatusPress]
   );
 
   const renderEmptyState = () => {
@@ -266,11 +302,11 @@ export default function BooksScreen() {
 
       {/* Books List */}
       <FlatList
-        data={books}
-        renderItem={renderBook}
-        keyExtractor={(item) => item.id}
+        data={listItems}
+        renderItem={renderItem}
+        keyExtractor={getBookListItemKey}
         contentContainerStyle={
-          books.length === 0 ? styles.emptyList : styles.list
+          listItems.length === 0 ? styles.emptyList : styles.list
         }
         ListEmptyComponent={renderEmptyState}
         showsVerticalScrollIndicator={false}
