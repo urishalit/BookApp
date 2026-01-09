@@ -12,8 +12,10 @@ import { Image } from 'expo-image';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
-import { BookStatusBadge, getAllStatuses, getStatusConfig } from '@/components/book-status-badge';
+import { SeriesPicker } from '@/components/series-picker';
+import { getAllStatuses, getStatusConfig } from '@/components/book-status-badge';
 import { useBookOperations } from '@/hooks/use-books';
+import { useSeries } from '@/hooks/use-series';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import type { Book, BookStatus } from '@/types/models';
 
@@ -22,11 +24,13 @@ const PLACEHOLDER_COVER = 'https://via.placeholder.com/256x384/E5D4C0/8B5A2B?tex
 export default function BookDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const { fetchBook, updateBookStatus, removeBook } = useBookOperations();
+  const { fetchBook, updateBookStatus, editBook, removeBook } = useBookOperations();
+  const { series } = useSeries();
 
   const [book, setBook] = useState<Book | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [isEditingSeries, setIsEditingSeries] = useState(false);
 
   const primaryColor = useThemeColor({ light: '#8B5A2B', dark: '#D4A574' }, 'text');
   const cardBg = useThemeColor({ light: '#FFFFFF', dark: '#1E2730' }, 'background');
@@ -68,6 +72,28 @@ export default function BookDetailScreen() {
       }
     },
     [book, updateBookStatus]
+  );
+
+  const handleSeriesChange = useCallback(
+    async (seriesId: string | undefined, seriesOrder?: number) => {
+      if (!book) return;
+
+      setIsUpdating(true);
+      try {
+        await editBook(book.id, { 
+          seriesId: seriesId || null as any, 
+          seriesOrder: seriesOrder || null as any 
+        });
+        setBook((prev) => (prev ? { ...prev, seriesId, seriesOrder } : null));
+        setIsEditingSeries(false);
+      } catch (error) {
+        console.error('Failed to update series:', error);
+        Alert.alert('Error', 'Failed to update book series');
+      } finally {
+        setIsUpdating(false);
+      }
+    },
+    [book, editBook]
   );
 
   const handleDelete = useCallback(() => {
@@ -146,11 +172,57 @@ export default function BookDetailScreen() {
           <ThemedText style={[styles.author, { color: subtitleColor }]}>
             by {book.author}
           </ThemedText>
+        </View>
 
-          {book.seriesId && book.seriesOrder && (
-            <ThemedText style={[styles.seriesInfo, { color: subtitleColor }]}>
-              Book #{book.seriesOrder} in series
-            </ThemedText>
+        {/* Series Section */}
+        <View style={[styles.seriesSection, { backgroundColor: cardBg, borderColor }]}>
+          <View style={styles.seriesHeader}>
+            <ThemedText style={styles.sectionTitle}>Series</ThemedText>
+            <Pressable onPress={() => setIsEditingSeries(!isEditingSeries)}>
+              <ThemedText style={[styles.editLink, { color: primaryColor }]}>
+                {isEditingSeries ? 'Done' : 'Edit'}
+              </ThemedText>
+            </Pressable>
+          </View>
+          
+          {isEditingSeries ? (
+            <SeriesPicker
+              selectedSeriesId={book.seriesId}
+              onSeriesSelect={(seriesId, _name) => {
+                handleSeriesChange(seriesId, seriesId ? (book.seriesOrder || 1) : undefined);
+              }}
+              seriesOrder={book.seriesOrder}
+              onSeriesOrderChange={(order) => {
+                if (book.seriesId) {
+                  handleSeriesChange(book.seriesId, order);
+                }
+              }}
+            />
+          ) : (
+            <View style={styles.seriesDisplay}>
+              {book.seriesId ? (
+                <>
+                  <Pressable
+                    style={styles.seriesLink}
+                    onPress={() => router.push({ pathname: '/series/[id]', params: { id: book.seriesId! } })}
+                  >
+                    <IconSymbol name="books.vertical.fill" size={20} color={primaryColor} />
+                    <ThemedText style={[styles.seriesName, { color: primaryColor }]}>
+                      {series.find((s) => s.id === book.seriesId)?.name || 'Unknown Series'}
+                    </ThemedText>
+                  </Pressable>
+                  {book.seriesOrder && (
+                    <ThemedText style={[styles.seriesOrderText, { color: subtitleColor }]}>
+                      Book #{book.seriesOrder}
+                    </ThemedText>
+                  )}
+                </>
+              ) : (
+                <ThemedText style={[styles.noSeries, { color: subtitleColor }]}>
+                  Not part of a series
+                </ThemedText>
+              )}
+            </View>
           )}
         </View>
 
@@ -271,10 +343,39 @@ const styles = StyleSheet.create({
     fontSize: 16,
     textAlign: 'center',
   },
-  seriesInfo: {
+  seriesSection: {
+    padding: 20,
+    borderRadius: 16,
+    borderWidth: 1,
+    gap: 16,
+  },
+  seriesHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  editLink: {
     fontSize: 14,
-    textAlign: 'center',
-    marginTop: 4,
+    fontWeight: '600',
+  },
+  seriesDisplay: {
+    gap: 8,
+  },
+  seriesLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  seriesName: {
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  seriesOrderText: {
+    fontSize: 14,
+    marginLeft: 28,
+  },
+  noSeries: {
+    fontSize: 15,
   },
   statusSection: {
     padding: 20,

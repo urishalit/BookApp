@@ -15,7 +15,8 @@ import * as ImagePicker from 'expo-image-picker';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
-import { BookStatusBadge, getAllStatuses, getStatusConfig } from '@/components/book-status-badge';
+import { SeriesPicker } from '@/components/series-picker';
+import { getAllStatuses, getStatusConfig } from '@/components/book-status-badge';
 import { useBookOperations } from '@/hooks/use-books';
 import { useFamily } from '@/hooks/use-family';
 import { useThemeColor } from '@/hooks/use-theme-color';
@@ -32,6 +33,8 @@ export default function AddBookScreen() {
   const [author, setAuthor] = useState('');
   const [status, setStatus] = useState<BookStatus>('to-read');
   const [coverUri, setCoverUri] = useState<string | null>(null);
+  const [seriesId, setSeriesId] = useState<string | undefined>();
+  const [seriesOrder, setSeriesOrder] = useState<number | undefined>();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const primaryColor = useThemeColor({ light: '#8B5A2B', dark: '#D4A574' }, 'text');
@@ -118,6 +121,8 @@ export default function AddBookScreen() {
         author: author.trim(),
         status,
         ...(thumbnailUrl && { thumbnailUrl }),
+        ...(seriesId && { seriesId }),
+        ...(seriesOrder && { seriesOrder }),
       });
 
       router.back();
@@ -128,7 +133,7 @@ export default function AddBookScreen() {
     } finally {
       setIsSubmitting(false);
     }
-  }, [title, author, status, coverUri, selectedMemberId, addBook, router]);
+  }, [title, author, status, coverUri, selectedMemberId, seriesId, seriesOrder, addBook, router]);
 
   const cycleStatus = useCallback(() => {
     const statuses = getAllStatuses();
@@ -244,6 +249,17 @@ export default function AddBookScreen() {
                 );
               })}
             </View>
+          </View>
+
+          {/* Series Picker */}
+          <View style={styles.inputGroup}>
+            <ThemedText style={styles.label}>Series (Optional)</ThemedText>
+            <SeriesPicker
+              selectedSeriesId={seriesId}
+              onSeriesSelect={(id) => setSeriesId(id)}
+              seriesOrder={seriesOrder}
+              onSeriesOrderChange={setSeriesOrder}
+            />
           </View>
 
           {/* Adding for member info */}

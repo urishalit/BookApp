@@ -8,6 +8,7 @@ import type { Book } from '@/types/models';
 
 interface BookCardProps {
   book: Book;
+  seriesName?: string;
   onPress?: () => void;
   onLongPress?: () => void;
   onStatusPress?: () => void;
@@ -15,7 +16,7 @@ interface BookCardProps {
 
 const PLACEHOLDER_COVER = 'https://via.placeholder.com/128x192/E5D4C0/8B5A2B?text=No+Cover';
 
-export function BookCard({ book, onPress, onLongPress, onStatusPress }: BookCardProps) {
+export function BookCard({ book, seriesName, onPress, onLongPress, onStatusPress }: BookCardProps) {
   const cardBackground = useThemeColor({}, 'background');
   const borderColor = useThemeColor(
     { light: '#E5D4C0', dark: '#2D3748' },
@@ -66,10 +67,19 @@ export function BookCard({ book, onPress, onLongPress, onStatusPress }: BookCard
             size="small"
             onPress={onStatusPress}
           />
-          {book.seriesOrder && (
-            <ThemedText style={[styles.seriesOrder, { color: subtitleColor }]}>
-              #{book.seriesOrder}
-            </ThemedText>
+          {(seriesName || book.seriesOrder) && (
+            <View style={styles.seriesInfo}>
+              {seriesName && (
+                <ThemedText style={[styles.seriesName, { color: subtitleColor }]} numberOfLines={1}>
+                  {seriesName}
+                </ThemedText>
+              )}
+              {book.seriesOrder && (
+                <ThemedText style={[styles.seriesOrder, { color: subtitleColor }]}>
+                  #{book.seriesOrder}
+                </ThemedText>
+              )}
+            </View>
           )}
         </View>
       </View>
@@ -123,6 +133,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 8,
     gap: 8,
+  },
+  seriesInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    flex: 1,
+  },
+  seriesName: {
+    fontSize: 12,
+    fontStyle: 'italic',
+    flex: 1,
   },
   seriesOrder: {
     fontSize: 13,

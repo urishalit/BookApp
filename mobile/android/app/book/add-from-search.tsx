@@ -13,6 +13,7 @@ import { Image } from 'expo-image';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { SeriesPicker } from '@/components/series-picker';
 import { getAllStatuses, getStatusConfig } from '@/components/book-status-badge';
 import { useBookOperations } from '@/hooks/use-books';
 import { useFamily } from '@/hooks/use-family';
@@ -37,6 +38,8 @@ export default function AddFromSearchScreen() {
   const { addBook } = useBookOperations();
 
   const [status, setStatus] = useState<BookStatus>('to-read');
+  const [seriesId, setSeriesId] = useState<string | undefined>();
+  const [seriesOrder, setSeriesOrder] = useState<number | undefined>();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showFullDescription, setShowFullDescription] = useState(false);
 
@@ -62,6 +65,8 @@ export default function AddFromSearchScreen() {
         status,
         googleBooksId: params.googleBooksId,
         thumbnailUrl: params.thumbnailUrl || undefined,
+        ...(seriesId && { seriesId }),
+        ...(seriesOrder && { seriesOrder }),
       });
 
       // Go back to search screen and then to books
@@ -73,7 +78,7 @@ export default function AddFromSearchScreen() {
     } finally {
       setIsSubmitting(false);
     }
-  }, [params, status, addBook, router]);
+  }, [params, status, seriesId, seriesOrder, addBook, router]);
 
   if (!selectedMember) {
     return (
@@ -201,6 +206,17 @@ export default function AddFromSearchScreen() {
                 );
               })}
             </View>
+          </View>
+
+          {/* Series Picker */}
+          <View style={styles.inputGroup}>
+            <ThemedText style={styles.sectionLabel}>Series (Optional)</ThemedText>
+            <SeriesPicker
+              selectedSeriesId={seriesId}
+              onSeriesSelect={(id) => setSeriesId(id)}
+              seriesOrder={seriesOrder}
+              onSeriesOrderChange={setSeriesOrder}
+            />
           </View>
 
           {/* Adding for member info */}
