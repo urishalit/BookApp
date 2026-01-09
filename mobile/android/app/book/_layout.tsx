@@ -28,6 +28,13 @@ export default function BookLayout() {
           presentation: 'modal',
         }}
       />
+      <Stack.Screen
+        name="add-from-search"
+        options={{
+          title: 'Add Book',
+          presentation: 'modal',
+        }}
+      />
     </Stack>
   );
 }
