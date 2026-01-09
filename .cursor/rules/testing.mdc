@@ -4,9 +4,41 @@ globs:
   - "**/__tests__/**/*.test.ts"
   - "**/__tests__/**/*.test.tsx"
   - "**/jest.*.js"
+alwaysApply: true
 ---
 
 # Testing Rules
+
+## Test Coverage Requirement
+
+**All new functionality and bug fixes MUST include tests.**
+
+### When Tests Are Required
+
+- ✅ New features or components
+- ✅ Bug fixes (test should reproduce the bug and verify the fix)
+- ✅ Refactoring that changes behavior
+- ✅ New utility functions or hooks
+- ✅ Changes to business logic
+
+### When Tests May Be Optional
+
+- ❌ Pure styling/CSS changes with no logic
+- ❌ Documentation updates
+- ❌ Configuration file changes (unless they affect runtime behavior)
+
+### Bug Fix Testing Pattern
+
+When fixing a bug:
+
+1. **Write a test that reproduces the bug** (test should fail initially)
+2. **Fix the bug** in the source code
+3. **Verify the test now passes**
+4. **Perform mutation testing** to ensure the test is meaningful
+
+This ensures the bug is documented and prevents regression.
+
+---
 
 ## Mutation Testing Requirement
 
