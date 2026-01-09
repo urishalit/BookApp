@@ -43,6 +43,13 @@
           }
         }
       ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow $(PRODUCT_NAME) to access your photos to add book covers.",
+          "cameraPermission": "Allow $(PRODUCT_NAME) to access your camera to take photos of book covers."
+        }
+      ],
       "@react-native-firebase/app",
       "@react-native-firebase/auth",
       "@react-native-google-signin/google-signin"
@@ -53,3 +60,4 @@
     }
   }
 }
+
