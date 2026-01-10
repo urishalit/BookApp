@@ -88,7 +88,10 @@
     "series": "סדרה",
     "unknownSeries": "סדרה לא ידועה",
     "bookNumber": "ספר #{{number}}",
-    "notInSeries": "לא חלק מסדרה"
+    "notInSeries": "לא חלק מסדרה",
+    "editCover": "ערוך עטיפה",
+    "chooseCoverMethod": "בחר שיטה לעדכון העטיפה",
+    "failedToUpdateCover": "עדכון העטיפה נכשל"
   },
   "addBook": {
     "title": "הוסף ספר",

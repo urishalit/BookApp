@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Image } from 'expo-image';
+import * as ImagePicker from 'expo-image-picker';
 import { useTranslation } from 'react-i18next';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -19,7 +20,9 @@ import { GenreBadge } from '@/components/genre-badge';
 import { getAllStatuses, getStatusConfig } from '@/components/book-status-badge';
 import { useBooks, useBookOperations } from '@/hooks/use-books';
 import { useSeries } from '@/hooks/use-series';
+import { useFamilyStore } from '@/stores/family-store';
 import { useThemeColor } from '@/hooks/use-theme-color';
+import { uploadBookCover } from '@/lib/storage';
 import type { MemberBook, BookStatus } from '@/types/models';
 
 const PLACEHOLDER_COVER = 'https://via.placeholder.com/256x384/E5D4C0/8B5A2B?text=No+Cover';
@@ -31,11 +34,14 @@ export default function BookDetailScreen() {
   const { allBooks, isLoading } = useBooks();
   const { updateBookStatus, updateBookMetadata, removeBook } = useBookOperations();
   const { series } = useSeries();
+  const family = useFamilyStore((s) => s.family);
+  const selectedMemberId = useFamilyStore((s) => s.selectedMemberId);
 
   const [isUpdating, setIsUpdating] = useState(false);
   const [isEditingSeries, setIsEditingSeries] = useState(false);
   const [isEditingGenres, setIsEditingGenres] = useState(false);
   const [localGenres, setLocalGenres] = useState<string[]>([]);
+  const [isUploadingCover, setIsUploadingCover] = useState(false);
 
   const primaryColor = useThemeColor({ light: '#8B5A2B', dark: '#D4A574' }, 'text');
   const cardBg = useThemeColor({ light: '#FFFFFF', dark: '#1E2730' }, 'background');
@@ -68,6 +74,77 @@ export default function BookDetailScreen() {
     },
     [book, updateBookStatus]
   );
+
+  const handlePickImage = useCallback(async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [2, 3],
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets[0] && book && family && selectedMemberId) {
+      setIsUploadingCover(true);
+      try {
+        const downloadUrl = await uploadBookCover(
+          result.assets[0].uri,
+          family.id,
+          selectedMemberId,
+          book.id
+        );
+        await updateBookMetadata(book.id, { thumbnailUrl: downloadUrl });
+      } catch (error) {
+        console.error('Failed to upload cover:', error);
+        Alert.alert(t('common.error'), t('bookDetail.failedToUpdateCover'));
+      } finally {
+        setIsUploadingCover(false);
+      }
+    }
+  }, [book, family, selectedMemberId, updateBookMetadata, t]);
+
+  const handleTakePhoto = useCallback(async () => {
+    const permission = await ImagePicker.requestCameraPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert(t('addBook.permissionRequired'), t('addBook.cameraPermission'));
+      return;
+    }
+
+    const result = await ImagePicker.launchCameraAsync({
+      allowsEditing: true,
+      aspect: [2, 3],
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets[0] && book && family && selectedMemberId) {
+      setIsUploadingCover(true);
+      try {
+        const downloadUrl = await uploadBookCover(
+          result.assets[0].uri,
+          family.id,
+          selectedMemberId,
+          book.id
+        );
+        await updateBookMetadata(book.id, { thumbnailUrl: downloadUrl });
+      } catch (error) {
+        console.error('Failed to upload cover:', error);
+        Alert.alert(t('common.error'), t('bookDetail.failedToUpdateCover'));
+      } finally {
+        setIsUploadingCover(false);
+      }
+    }
+  }, [book, family, selectedMemberId, updateBookMetadata, t]);
+
+  const handleEditCover = useCallback(() => {
+    Alert.alert(
+      t('bookDetail.editCover'),
+      t('bookDetail.chooseCoverMethod'),
+      [
+        { text: t('common.cancel'), style: 'cancel' },
+        { text: t('member.takePhoto'), onPress: handleTakePhoto },
+        { text: t('member.chooseFromLibrary'), onPress: handlePickImage },
+      ]
+    );
+  }, [handlePickImage, handleTakePhoto, t]);
 
   const handleSeriesChange = useCallback(
     async (seriesId: string | undefined, seriesOrder?: number) => {
@@ -168,14 +245,27 @@ export default function BookDetailScreen() {
       >
         {/* Cover Image */}
         <View style={styles.coverSection}>
-          <View style={[styles.coverContainer, { borderColor }]}>
+          <Pressable 
+            style={[styles.coverContainer, { borderColor }]}
+            onPress={handleEditCover}
+            disabled={isUploadingCover}
+          >
             <Image
               source={{ uri: book.thumbnailUrl || PLACEHOLDER_COVER }}
               style={styles.coverImage}
               contentFit="cover"
               transition={300}
             />
-          </View>
+            {isUploadingCover ? (
+              <View style={styles.coverOverlay}>
+                <ActivityIndicator color="#FFFFFF" size="large" />
+              </View>
+            ) : (
+              <View style={styles.editCoverButton}>
+                <IconSymbol name="pencil" size={16} color="#FFFFFF" />
+              </View>
+            )}
+          </Pressable>
         </View>
 
         {/* Book Info */}
@@ -375,6 +465,23 @@ const styles = StyleSheet.create({
   coverImage: {
     width: '100%',
     height: '100%',
+  },
+  coverOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  editCoverButton: {
+    position: 'absolute',
+    bottom: 8,
+    right: 8,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    borderRadius: 20,
+    width: 36,
+    height: 36,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   infoSection: {
     padding: 20,

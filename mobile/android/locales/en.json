@@ -88,7 +88,10 @@
     "series": "Series",
     "unknownSeries": "Unknown Series",
     "bookNumber": "Book #{{number}}",
-    "notInSeries": "Not part of a series"
+    "notInSeries": "Not part of a series",
+    "editCover": "Edit Cover",
+    "chooseCoverMethod": "Choose a method to update the cover",
+    "failedToUpdateCover": "Failed to update cover"
   },
   "addBook": {
     "title": "Add Book",

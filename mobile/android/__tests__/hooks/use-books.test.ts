@@ -327,6 +327,20 @@ describe('useBooks Hook', () => {
       );
     });
 
+    it('should update book cover (thumbnailUrl)', async () => {
+      const { result } = renderHook(() => useBookOperations());
+
+      await result.current.updateBookMetadata('book-1', {
+        thumbnailUrl: 'https://example.com/new-cover.jpg',
+      });
+
+      expect(firestoreModule.updateFamilyBook).toHaveBeenCalledWith(
+        'family-123',
+        'book-1',
+        { thumbnailUrl: 'https://example.com/new-cover.jpg' }
+      );
+    });
+
     it('should add series to library', async () => {
       const { result } = renderHook(() => useBookOperations());
 
