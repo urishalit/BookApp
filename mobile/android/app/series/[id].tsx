@@ -59,12 +59,12 @@ export default function SeriesDetailScreen() {
       } else {
         // Book not in library - prompt to add it
         Alert.alert(
-          'Add to Library',
-          `"${book.title}" is not in your library yet. Add it to view details and track your reading progress.`,
+          t('seriesDetail.addToLibraryTitle'),
+          t('seriesDetail.addToLibraryMessage', { title: book.title }),
           [
-            { text: 'Cancel', style: 'cancel' },
+            { text: t('common.cancel'), style: 'cancel' },
             {
-              text: 'Add to Library',
+              text: t('seriesDetail.addToLibraryButton'),
               onPress: async () => {
                 try {
                   await addOrUpdateBookStatus(book.id, 'to-read', undefined);
@@ -74,7 +74,7 @@ export default function SeriesDetailScreen() {
                     params: { id: book.id },
                   });
                 } catch (err) {
-                  Alert.alert('Error', 'Failed to add book to library');
+                  Alert.alert(t('common.error'), t('seriesDetail.failedToAddBook'));
                 }
               },
             },
@@ -94,7 +94,7 @@ export default function SeriesDetailScreen() {
         // - If not, adds the book to library with the new status
         await addOrUpdateBookStatus(book.id, nextStatus, book.libraryEntryId);
       } catch (err) {
-        Alert.alert('Error', 'Failed to update book status');
+        Alert.alert(t('common.error'), t('books.failedToUpdateStatus'));
       }
     },
     [addOrUpdateBookStatus]
@@ -112,13 +112,13 @@ export default function SeriesDetailScreen() {
 
     const trimmedName = editName.trim();
     if (!trimmedName) {
-      Alert.alert('Name Required', 'Please enter a name for the series.');
+      Alert.alert(t('seriesDetail.nameRequired'), t('seriesDetail.nameRequiredMessage'));
       return;
     }
 
     const bookCount = parseInt(editTotalBooks, 10);
     if (isNaN(bookCount) || bookCount < 1) {
-      Alert.alert('Invalid Count', 'Please enter a valid number of books.');
+      Alert.alert(t('seriesDetail.invalidCount'), t('seriesDetail.invalidCountMessage'));
       return;
     }
 
@@ -131,7 +131,7 @@ export default function SeriesDetailScreen() {
       setIsEditing(false);
     } catch (error) {
       console.error('Failed to update series:', error);
-      Alert.alert('Error', 'Failed to update series.');
+      Alert.alert(t('common.error'), t('seriesDetail.failedToUpdate'));
     } finally {
       setIsSaving(false);
     }
@@ -141,12 +141,12 @@ export default function SeriesDetailScreen() {
     if (!series || !id) return;
 
     Alert.alert(
-      'Delete Series',
-      `Are you sure you want to delete "${series.name}"? Books in this series will NOT be deleted, but they will no longer be associated with this series.`,
+      t('series.deleteSeries'),
+      t('seriesDetail.deleteConfirm', { name: series.name }),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Delete',
+          text: t('common.delete'),
           style: 'destructive',
           onPress: async () => {
             try {
@@ -154,7 +154,7 @@ export default function SeriesDetailScreen() {
               router.back();
             } catch (error) {
               console.error('Failed to delete series:', error);
-              Alert.alert('Error', 'Failed to delete series');
+              Alert.alert(t('common.error'), t('series.failedToDelete'));
             }
           },
         },
@@ -166,7 +166,7 @@ export default function SeriesDetailScreen() {
     return (
       <ThemedView style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={primaryColor} />
-        <ThemedText style={styles.loadingText}>Loading series...</ThemedText>
+        <ThemedText style={styles.loadingText}>{t('seriesDetail.loading')}</ThemedText>
       </ThemedView>
     );
   }
@@ -175,12 +175,12 @@ export default function SeriesDetailScreen() {
     return (
       <ThemedView style={styles.errorContainer}>
         <IconSymbol name="books.vertical.fill" size={64} color={subtitleColor} />
-        <ThemedText style={styles.errorText}>Series not found</ThemedText>
+        <ThemedText style={styles.errorText}>{t('seriesDetail.notFound')}</ThemedText>
         <Pressable
           style={[styles.button, { backgroundColor: primaryColor }]}
           onPress={() => router.back()}
         >
-          <ThemedText style={styles.buttonText}>Go Back</ThemedText>
+          <ThemedText style={styles.buttonText}>{t('common.goBack')}</ThemedText>
         </Pressable>
       </ThemedView>
     );
@@ -209,7 +209,7 @@ export default function SeriesDetailScreen() {
             style={[styles.nameInput, { backgroundColor: inputBg, borderColor, color: textColor }]}
             value={editName}
             onChangeText={setEditName}
-            placeholder="Series name"
+            placeholder={t('seriesDetail.namePlaceholder')}
             autoFocus
           />
         ) : (
@@ -221,7 +221,7 @@ export default function SeriesDetailScreen() {
         {/* Total Books */}
         {isEditing ? (
           <View style={styles.editRow}>
-            <ThemedText style={styles.editLabel}>Total books:</ThemedText>
+            <ThemedText style={styles.editLabel}>{t('seriesDetail.totalBooks')}</ThemedText>
             <TextInput
               style={[styles.numberInput, { backgroundColor: inputBg, borderColor, color: textColor }]}
               value={editTotalBooks}
@@ -232,7 +232,7 @@ export default function SeriesDetailScreen() {
           </View>
         ) : (
           <ThemedText style={[styles.bookCount, { color: subtitleColor }]}>
-            {series.totalBooks} {series.totalBooks === 1 ? 'book' : 'books'} in series
+            {t('seriesDetail.booksInSeries', { count: series.totalBooks })}
           </ThemedText>
         )}
 
@@ -270,7 +270,7 @@ export default function SeriesDetailScreen() {
               onPress={() => setIsEditing(false)}
             >
               <ThemedText style={[styles.editButtonText, { color: subtitleColor }]}>
-                Cancel
+                {t('common.cancel')}
               </ThemedText>
             </Pressable>
             <Pressable
@@ -282,7 +282,7 @@ export default function SeriesDetailScreen() {
                 <ActivityIndicator color="#FFFFFF" size="small" />
               ) : (
                 <ThemedText style={[styles.editButtonText, { color: '#FFFFFF' }]}>
-                  Save
+                  {t('common.save')}
                 </ThemedText>
               )}
             </Pressable>
@@ -291,7 +291,7 @@ export default function SeriesDetailScreen() {
           <Pressable style={styles.editLink} onPress={handleStartEdit}>
             <IconSymbol name="pencil" size={16} color={primaryColor} />
             <ThemedText style={[styles.editLinkText, { color: primaryColor }]}>
-              Edit Series
+              {t('seriesDetail.editSeries')}
             </ThemedText>
           </Pressable>
         )}
@@ -300,7 +300,7 @@ export default function SeriesDetailScreen() {
       {/* Books Section Header */}
       <View style={styles.sectionHeader}>
         <ThemedText type="subtitle" style={styles.sectionTitle}>
-          Books in Series ({books.length})
+          {t('seriesDetail.booksSection', { count: books.length })}
         </ThemedText>
       </View>
 
@@ -309,10 +309,10 @@ export default function SeriesDetailScreen() {
         <View style={[styles.emptyBooks, { backgroundColor: cardBg, borderColor }]}>
           <IconSymbol name="book.fill" size={40} color={subtitleColor} />
           <ThemedText style={[styles.emptyBooksText, { color: subtitleColor }]}>
-            No books added to this series yet.
+            {t('seriesDetail.noBooksYet')}
           </ThemedText>
           <ThemedText style={[styles.emptyBooksHint, { color: subtitleColor }]}>
-            Add books from the Search tab and assign them to this series.
+            {t('seriesDetail.addBooksHint')}
           </ThemedText>
         </View>
       )}
@@ -327,7 +327,7 @@ export default function SeriesDetailScreen() {
         onPress={handleDelete}
       >
         <IconSymbol name="trash" size={20} color="#E57373" />
-        <ThemedText style={styles.deleteButtonText}>Delete Series</ThemedText>
+        <ThemedText style={styles.deleteButtonText}>{t('series.deleteSeries')}</ThemedText>
       </Pressable>
     </View>
   );

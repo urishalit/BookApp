@@ -1,7 +1,9 @@
 import { Stack } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { useThemeColor } from '@/hooks/use-theme-color';
 
 export default function SeriesLayout() {
+  const { t } = useTranslation();
   const backgroundColor = useThemeColor({}, 'background');
   const textColor = useThemeColor({}, 'text');
 
@@ -16,14 +18,14 @@ export default function SeriesLayout() {
       <Stack.Screen
         name="[id]"
         options={{
-          title: 'Series Details',
+          title: t('seriesDetail.title'),
           presentation: 'card',
         }}
       />
       <Stack.Screen
         name="create"
         options={{
-          title: 'Create Series',
+          title: t('createSeries.title'),
           presentation: 'modal',
         }}
       />
