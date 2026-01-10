@@ -107,3 +107,39 @@ describe('Firestore undefined field value handling', () => {
     expect(bookId).toBe('mock-doc-id');
   });
 });
+
+describe('updateFamilyBook undefined field value handling', () => {
+  let mockFieldValueDelete: jest.Mock;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    
+    // Access the mocked firestore and add FieldValue.delete mock
+    const firestore = require('@react-native-firebase/firestore').default;
+    mockFieldValueDelete = jest.fn(() => ({ _fieldValueDelete: true }));
+    firestore.FieldValue.delete = mockFieldValueDelete;
+  });
+
+  it('should convert undefined genres to FieldValue.delete()', async () => {
+    const { updateFamilyBook } = require('../../lib/firestore');
+    
+    // This should NOT throw because undefined gets converted to FieldValue.delete()
+    await expect(
+      updateFamilyBook('family-123', 'book-123', { genres: undefined })
+    ).resolves.not.toThrow();
+    
+    // Verify FieldValue.delete() was called
+    expect(mockFieldValueDelete).toHaveBeenCalled();
+  });
+
+  it('should not call FieldValue.delete() for defined values', async () => {
+    const { updateFamilyBook } = require('../../lib/firestore');
+    
+    await updateFamilyBook('family-123', 'book-123', { 
+      genres: ['fantasy', 'adventure'] 
+    });
+    
+    // FieldValue.delete() should NOT be called for defined values
+    expect(mockFieldValueDelete).not.toHaveBeenCalled();
+  });
+});

@@ -205,13 +205,21 @@ export async function getSeriesBooksFromCatalog(familyId: string, seriesId: stri
 
 /**
  * Update a family book
+ * Converts undefined values to FieldValue.delete() for Firestore compatibility
  */
 export async function updateFamilyBook(
   familyId: string,
   bookId: string,
   data: Partial<FamilyBook>
 ): Promise<void> {
-  const { id, ...updateData } = data;
+  const { id, ...rest } = data;
+  
+  // Convert undefined values to FieldValue.delete()
+  const updateData: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(rest)) {
+    updateData[key] = value === undefined ? firestore.FieldValue.delete() : value;
+  }
+  
   await familyBooksCollection(familyId).doc(bookId).update(updateData);
 }
 
