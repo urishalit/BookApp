@@ -8,6 +8,7 @@ import {
   Alert,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { MemberCard } from '@/components/member-card';
@@ -18,6 +19,7 @@ import { useThemeColor } from '@/hooks/use-theme-color';
 import type { Member } from '@/types/models';
 
 export default function FamilyScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const {
     family,
@@ -53,12 +55,12 @@ export default function FamilyScreen() {
   const handleDeleteMember = useCallback(
     (member: Member) => {
       Alert.alert(
-        'Delete Member',
-        `Are you sure you want to delete "${member.name}"? This will also delete all their books.`,
+        t('family.deleteMember'),
+        t('family.deleteMemberConfirm', { name: member.name }),
         [
-          { text: 'Cancel', style: 'cancel' },
+          { text: t('common.cancel'), style: 'cancel' },
           {
-            text: 'Delete',
+            text: t('common.delete'),
             style: 'destructive',
             onPress: async () => {
               try {
@@ -68,14 +70,14 @@ export default function FamilyScreen() {
                   setSelectedMemberId(null);
                 }
               } catch (err) {
-                Alert.alert('Error', 'Failed to delete member');
+                Alert.alert(t('common.error'), t('family.failedToDeleteMember'));
               }
             },
           },
         ]
       );
     },
-    [removeMember, selectedMemberId, setSelectedMemberId]
+    [removeMember, selectedMemberId, setSelectedMemberId, t]
   );
 
   const handleAddMember = useCallback(() => {
@@ -100,17 +102,17 @@ export default function FamilyScreen() {
         <IconSymbol name="person.3.fill" size={64} color={primaryColor} />
       </View>
       <ThemedText type="title" style={styles.emptyTitle}>
-        No Family Members Yet
+        {t('family.noMembersYet')}
       </ThemedText>
       <ThemedText style={styles.emptyText}>
-        Add your first family member to start tracking their books!
+        {t('family.noMembersDescription')}
       </ThemedText>
       <Pressable
         style={[styles.emptyButton, { backgroundColor: primaryColor }]}
         onPress={handleAddMember}
       >
         <IconSymbol name="plus" size={20} color="#FFFFFF" />
-        <ThemedText style={styles.emptyButtonText}>Add First Member</ThemedText>
+        <ThemedText style={styles.emptyButtonText}>{t('family.addFirstMember')}</ThemedText>
       </Pressable>
     </View>
   );
@@ -119,7 +121,7 @@ export default function FamilyScreen() {
     return (
       <ThemedView style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={primaryColor} />
-        <ThemedText style={styles.loadingText}>Loading family...</ThemedText>
+        <ThemedText style={styles.loadingText}>{t('family.loadingFamily')}</ThemedText>
       </ThemedView>
     );
   }
@@ -139,17 +141,17 @@ export default function FamilyScreen() {
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <ThemedText type="title" style={styles.headerTitle}>
-            {family?.name ?? 'Family'}
+            {family?.name ?? t('family.title')}
           </ThemedText>
           <ThemedText style={styles.memberCount}>
-            {members.length} {members.length === 1 ? 'member' : 'members'}
+            {t('family.member', { count: members.length })}
           </ThemedText>
         </View>
         <Pressable
-          style={[styles.addButton, { backgroundColor: primaryColor }]}
-          onPress={handleAddMember}
+          style={styles.settingsButton}
+          onPress={() => router.push('/settings')}
         >
-          <IconSymbol name="plus" size={24} color="#FFFFFF" />
+          <IconSymbol name="gearshape.fill" size={24} color={primaryColor} />
         </Pressable>
       </View>
 
@@ -199,6 +201,14 @@ export default function FamilyScreen() {
         ListEmptyComponent={renderEmptyState}
         showsVerticalScrollIndicator={false}
       />
+
+      {/* Floating Add Button */}
+      <Pressable
+        style={[styles.fab, { backgroundColor: primaryColor }]}
+        onPress={handleAddMember}
+      >
+        <IconSymbol name="plus" size={28} color="#FFFFFF" />
+      </Pressable>
     </ThemedView>
   );
 }
@@ -245,17 +255,26 @@ const styles = StyleSheet.create({
     opacity: 0.6,
     marginTop: 2,
   },
-  addButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+  settingsButton: {
+    width: 44,
+    height: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  fab: {
+    position: 'absolute',
+    bottom: 24,
+    right: 20,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 8,
   },
   selectedBar: {
     flexDirection: 'row',
@@ -281,7 +300,7 @@ const styles = StyleSheet.create({
   },
   list: {
     paddingTop: 8,
-    paddingBottom: 32,
+    paddingBottom: 100, // Extra padding for FAB
   },
   emptyList: {
     flex: 1,

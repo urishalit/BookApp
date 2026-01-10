@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, StyleSheet, Pressable } from 'react-native';
 import { Image } from 'expo-image';
+import { useTranslation } from 'react-i18next';
 import { ThemedText } from '@/components/themed-text';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useThemeColor } from '@/hooks/use-theme-color';
@@ -19,6 +20,7 @@ interface SeriesRowProps {
  * Used to collapse multiple books into a single row.
  */
 export function SeriesRow({ series, booksInSeries, onPress, onLongPress }: SeriesRowProps) {
+  const { t } = useTranslation();
   const cardBackground = useThemeColor({}, 'background');
   const borderColor = useThemeColor(
     { light: '#E5D4C0', dark: '#2D3748' },
@@ -94,7 +96,7 @@ export function SeriesRow({ series, booksInSeries, onPress, onLongPress }: Serie
           <View style={styles.statusRow}>
             <IconSymbol name="checkmark.circle.fill" size={14} color={primaryColor} />
             <ThemedText style={[styles.statusText, { color: subtitleColor }]}>
-              {booksRead} of {series.totalBooks} read
+              {t('series.booksRead', { read: booksRead, total: series.totalBooks })}
             </ThemedText>
           </View>
 

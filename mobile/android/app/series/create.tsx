@@ -11,6 +11,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
@@ -19,6 +20,7 @@ import { useFamily } from '@/hooks/use-family';
 import { useThemeColor } from '@/hooks/use-theme-color';
 
 export default function CreateSeriesScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const { family } = useFamily();
   const { addSeries } = useSeriesOperations();
@@ -40,13 +42,13 @@ export default function CreateSeriesScreen() {
   const handleSubmit = useCallback(async () => {
     const trimmedName = name.trim();
     if (!trimmedName) {
-      Alert.alert('Name Required', 'Please enter a name for the series.');
+      Alert.alert(t('member.nameRequired'), t('createSeries.nameRequired'));
       return;
     }
 
     const bookCount = parseInt(totalBooks, 10);
     if (isNaN(bookCount) || bookCount < 1) {
-      Alert.alert('Invalid Count', 'Please enter a valid number of books (at least 1).');
+      Alert.alert(t('common.error'), t('createSeries.nameRequired'));
       return;
     }
 
@@ -59,11 +61,11 @@ export default function CreateSeriesScreen() {
       router.back();
     } catch (error) {
       console.error('Failed to create series:', error);
-      Alert.alert('Error', 'Failed to create series. Please try again.');
+      Alert.alert(t('common.error'), t('series.failedToDelete'));
     } finally {
       setIsSubmitting(false);
     }
-  }, [name, totalBooks, addSeries, router]);
+  }, [name, totalBooks, addSeries, router, t]);
 
   const canSubmit = name.trim().length > 0 && parseInt(totalBooks, 10) >= 1 && !isSubmitting;
 
@@ -73,13 +75,13 @@ export default function CreateSeriesScreen() {
         <View style={styles.emptyContainer}>
           <IconSymbol name="house.fill" size={64} color={primaryColor} />
           <ThemedText style={styles.emptyText}>
-            Please set up your family first.
+            {t('series.setUpFamilyDescription')}
           </ThemedText>
           <Pressable
             style={[styles.button, { backgroundColor: primaryColor }]}
             onPress={() => router.push('/(tabs)/family')}
           >
-            <ThemedText style={styles.buttonText}>Go to Family</ThemedText>
+            <ThemedText style={styles.buttonText}>{t('common.goToFamily')}</ThemedText>
           </Pressable>
         </View>
       </ThemedView>
@@ -98,7 +100,7 @@ export default function CreateSeriesScreen() {
             <IconSymbol name="xmark" size={24} color={textColor} />
           </Pressable>
           <ThemedText type="title" style={styles.headerTitle}>
-            New Series
+            {t('createSeries.title')}
           </ThemedText>
           <View style={styles.headerSpacer} />
         </View>
@@ -117,7 +119,7 @@ export default function CreateSeriesScreen() {
           {/* Name Input */}
           <View style={styles.inputSection}>
             <ThemedText type="subtitle" style={styles.label}>
-              Series Name *
+              {t('createSeries.seriesName')} *
             </ThemedText>
             <TextInput
               style={[
@@ -130,7 +132,7 @@ export default function CreateSeriesScreen() {
               ]}
               value={name}
               onChangeText={setName}
-              placeholder="e.g., Harry Potter, Percy Jackson..."
+              placeholder={t('createSeries.namePlaceholder')}
               placeholderTextColor={placeholderColor}
               autoCapitalize="words"
               autoCorrect={false}
@@ -141,7 +143,7 @@ export default function CreateSeriesScreen() {
           {/* Total Books Input */}
           <View style={styles.inputSection}>
             <ThemedText type="subtitle" style={styles.label}>
-              Total Books in Series *
+              {t('createSeries.totalBooks')} *
             </ThemedText>
             <TextInput
               style={[
@@ -154,21 +156,11 @@ export default function CreateSeriesScreen() {
               ]}
               value={totalBooks}
               onChangeText={setTotalBooks}
-              placeholder="e.g., 7"
+              placeholder={t('createSeries.totalBooksPlaceholder')}
               placeholderTextColor={placeholderColor}
               keyboardType="number-pad"
               maxLength={3}
             />
-            <ThemedText style={[styles.hint, { color: placeholderColor }]}>
-              You can update this later if the series is ongoing.
-            </ThemedText>
-          </View>
-
-          {/* Shared Series Note */}
-          <View style={[styles.memberNote, { backgroundColor: inputBg }]}>
-            <ThemedText style={styles.memberNoteText}>
-              Series are shared across all family members.
-            </ThemedText>
           </View>
         </ScrollView>
 
@@ -187,7 +179,7 @@ export default function CreateSeriesScreen() {
             ) : (
               <>
                 <IconSymbol name="checkmark" size={20} color="#FFFFFF" />
-                <ThemedText style={styles.submitText}>Create Series</ThemedText>
+                <ThemedText style={styles.submitText}>{t('createSeries.createSeries')}</ThemedText>
               </>
             )}
           </Pressable>

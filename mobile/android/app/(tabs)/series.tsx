@@ -8,6 +8,7 @@ import {
   Alert,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { SeriesCard } from '@/components/series-card';
@@ -18,6 +19,7 @@ import { useFamily } from '@/hooks/use-family';
 import { useThemeColor } from '@/hooks/use-theme-color';
 
 export default function SeriesScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const { family, selectedMember, selectedMemberId } = useFamily();
   const { series, isLoading, error, totalSeries } = useSeries();
@@ -40,25 +42,25 @@ export default function SeriesScreen() {
   const handleDeleteSeries = useCallback(
     (item: SeriesWithProgress) => {
       Alert.alert(
-        'Delete Series',
-        `Are you sure you want to delete "${item.name}"?`,
+        t('series.deleteSeries'),
+        t('series.deleteSeriesConfirm', { name: item.name }),
         [
-          { text: 'Cancel', style: 'cancel' },
+          { text: t('common.cancel'), style: 'cancel' },
           {
-            text: 'Delete',
+            text: t('common.delete'),
             style: 'destructive',
             onPress: async () => {
               try {
                 await removeSeries(item.id);
               } catch (err) {
-                Alert.alert('Error', 'Failed to delete series');
+                Alert.alert(t('common.error'), t('series.failedToDelete'));
               }
             },
           },
         ]
       );
     },
-    [removeSeries]
+    [removeSeries, t]
   );
 
   const handleAddSeries = useCallback(() => {
@@ -73,11 +75,11 @@ export default function SeriesScreen() {
     async (item: SeriesWithProgress) => {
       if (!selectedMemberId) {
         Alert.alert(
-          'Select Member',
-          'Please select a family member first to add series to their library.',
+          t('series.selectMember'),
+          t('series.selectMemberMessage'),
           [
-            { text: 'Cancel', style: 'cancel' },
-            { text: 'Go to Family', onPress: () => router.push('/(tabs)/family') },
+            { text: t('common.cancel'), style: 'cancel' },
+            { text: t('common.goToFamily'), onPress: () => router.push('/(tabs)/family') },
           ]
         );
         return;
@@ -87,25 +89,24 @@ export default function SeriesScreen() {
       try {
         const result = await addSeriesToLibrary(item.id);
         if (result.added > 0) {
+          const skippedText = result.skipped > 0 ? ` ${t('series.skippedMessage', { count: result.skipped })}` : '';
           Alert.alert(
-            'Added to Library',
-            `Added ${result.added} book${result.added === 1 ? '' : 's'} to ${selectedMember?.name}'s library.${
-              result.skipped > 0 ? ` (${result.skipped} already in library)` : ''
-            }`
+            t('series.addedToLibrary'),
+            t('series.addedBooksMessage', { count: result.added, name: selectedMember?.name }) + skippedText
           );
         } else if (result.skipped > 0) {
-          Alert.alert('Already in Library', 'All books from this series are already in your library.');
+          Alert.alert(t('series.alreadyInLibrary'), t('series.allBooksInLibrary'));
         } else {
-          Alert.alert('No Books', 'This series has no books yet. Add books to the series first.');
+          Alert.alert(t('series.noBooks'), t('series.noBooksInSeries'));
         }
       } catch (err) {
         console.error('Failed to add series to library:', err);
-        Alert.alert('Error', 'Failed to add series to library. Please try again.');
+        Alert.alert(t('common.error'), t('series.failedToAddToLibrary'));
       } finally {
         setAddingSeriesId(null);
       }
     },
-    [selectedMemberId, selectedMember, addSeriesToLibrary, router]
+    [selectedMemberId, selectedMember, addSeriesToLibrary, router, t]
   );
 
   const renderSeries = useCallback(
@@ -129,16 +130,16 @@ export default function SeriesScreen() {
             <IconSymbol name="house.fill" size={64} color={primaryColor} />
           </View>
           <ThemedText type="title" style={styles.emptyTitle}>
-            Set Up Your Family
+            {t('series.setUpFamily')}
           </ThemedText>
           <ThemedText style={styles.emptyText}>
-            Create your family to start tracking book series.
+            {t('series.setUpFamilyDescription')}
           </ThemedText>
           <Pressable
             style={[styles.emptyButton, { backgroundColor: primaryColor }]}
             onPress={handleSelectMember}
           >
-            <ThemedText style={styles.emptyButtonText}>Go to Family</ThemedText>
+            <ThemedText style={styles.emptyButtonText}>{t('common.goToFamily')}</ThemedText>
           </Pressable>
         </View>
       );
@@ -150,18 +151,18 @@ export default function SeriesScreen() {
           <IconSymbol name="books.vertical.fill" size={64} color={primaryColor} />
         </View>
         <ThemedText type="title" style={styles.emptyTitle}>
-          No Series Yet
+          {t('series.noSeriesYet')}
         </ThemedText>
         <ThemedText style={styles.emptyText}>
-          Create a series to track your progress through multi-book adventures!
-          {!selectedMemberId && '\n\nSelect a member to see their progress.'}
+          {t('series.noSeriesDescription')}
+          {!selectedMemberId && '\n\n' + t('series.selectMemberToSeeProgress')}
         </ThemedText>
         <Pressable
           style={[styles.emptyButton, { backgroundColor: primaryColor }]}
           onPress={handleAddSeries}
         >
           <IconSymbol name="plus" size={20} color="#FFFFFF" />
-          <ThemedText style={styles.emptyButtonText}>Create First Series</ThemedText>
+          <ThemedText style={styles.emptyButtonText}>{t('series.createFirstSeries')}</ThemedText>
         </Pressable>
       </View>
     );
@@ -171,7 +172,7 @@ export default function SeriesScreen() {
     return (
       <ThemedView style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={primaryColor} />
-        <ThemedText style={styles.loadingText}>Loading series...</ThemedText>
+        <ThemedText style={styles.loadingText}>{t('series.loadingSeries')}</ThemedText>
       </ThemedView>
     );
   }
@@ -191,7 +192,7 @@ export default function SeriesScreen() {
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <ThemedText type="title" style={styles.headerTitle}>
-            Series
+            {t('series.title')}
           </ThemedText>
           {selectedMember && (
             <Pressable style={styles.memberInfo} onPress={handleSelectMember}>
@@ -221,8 +222,8 @@ export default function SeriesScreen() {
       {family && totalSeries > 0 && (
         <View style={styles.statsBar}>
           <ThemedText style={styles.statsText}>
-            {totalSeries} {totalSeries === 1 ? 'series' : 'series'} •{' '}
-            {series.filter((s) => s.progressPercent === 100).length} completed
+            {t('series.series', { count: totalSeries })} •{' '}
+            {series.filter((s) => s.progressPercent === 100).length} {t('series.completed')}
           </ThemedText>
         </View>
       )}

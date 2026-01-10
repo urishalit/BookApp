@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { ThemedText } from '@/components/themed-text';
 import { useThemeColor } from '@/hooks/use-theme-color';
 
@@ -22,6 +23,7 @@ export function SeriesProgress({
   size = 'medium',
   showBar = true,
 }: SeriesProgressProps) {
+  const { t } = useTranslation();
   const primaryColor = useThemeColor({ light: '#8B5A2B', dark: '#D4A574' }, 'text');
   const progressBg = useThemeColor({ light: '#E5D4C0', dark: '#2D3748' }, 'background');
   const subtitleColor = useThemeColor({ light: '#666666', dark: '#999999' }, 'text');
@@ -58,11 +60,11 @@ export function SeriesProgress({
             { fontSize: config.fontSize, color: isComplete ? '#4CAF50' : primaryColor },
           ]}
         >
-          {booksRead} of {totalBooks} read
+          {t('series.booksRead', { read: booksRead, total: totalBooks })}
         </ThemedText>
         {booksOwned < totalBooks && (
           <ThemedText style={[styles.ownedText, { fontSize: config.fontSize - 2, color: subtitleColor }]}>
-            ({booksOwned} owned)
+            {t('seriesCard.booksOwned', { count: booksOwned })}
           </ThemedText>
         )}
       </View>

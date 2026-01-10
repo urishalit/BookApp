@@ -11,6 +11,7 @@ import {
 import { useRouter } from 'expo-router';
 import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
@@ -79,6 +80,7 @@ function SearchResultItem({
 }
 
 export default function SearchScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { selectedMember } = useFamily();
@@ -126,7 +128,7 @@ export default function SearchScreen() {
       return (
         <View style={styles.centerState}>
           <ActivityIndicator size="large" color={accentColor} />
-          <ThemedText style={styles.stateText}>Searching...</ThemedText>
+          <ThemedText style={styles.stateText}>{t('search.searching')}</ThemedText>
         </View>
       );
     }
@@ -140,7 +142,7 @@ export default function SearchScreen() {
             style={[styles.retryButton, { backgroundColor: accentColor }]}
             onPress={() => setQuery(query)}
           >
-            <ThemedText style={styles.retryButtonText}>Try Again</ThemedText>
+            <ThemedText style={styles.retryButtonText}>{t('common.tryAgain')}</ThemedText>
           </Pressable>
         </View>
       );
@@ -150,9 +152,9 @@ export default function SearchScreen() {
       return (
         <View style={styles.centerState}>
           <IconSymbol name="book.closed" size={48} color={placeholderColor} />
-          <ThemedText style={styles.stateText}>No books found</ThemedText>
+          <ThemedText style={styles.stateText}>{t('search.noBooksFound')}</ThemedText>
           <ThemedText style={[styles.stateSubtext, { color: placeholderColor }]}>
-            Try a different search term
+            {t('search.tryDifferentTerm')}
           </ThemedText>
         </View>
       );
@@ -162,9 +164,9 @@ export default function SearchScreen() {
     return (
       <View style={styles.centerState}>
         <IconSymbol name="magnifyingglass" size={48} color={placeholderColor} />
-        <ThemedText style={styles.stateText}>Search for books</ThemedText>
+        <ThemedText style={styles.stateText}>{t('search.searchForBooks')}</ThemedText>
         <ThemedText style={[styles.stateSubtext, { color: placeholderColor }]}>
-          Find books by title, author, or ISBN
+          {t('search.searchHint')}
         </ThemedText>
       </View>
     );
@@ -174,10 +176,10 @@ export default function SearchScreen() {
     <ThemedView style={[styles.container, { paddingTop: insets.top }]}>
       {/* Header */}
       <View style={styles.header}>
-        <ThemedText type="title" style={styles.title}>Search Books</ThemedText>
+        <ThemedText type="title" style={styles.title}>{t('search.title')}</ThemedText>
         {selectedMember && (
           <ThemedText style={[styles.memberInfo, { color: placeholderColor }]}>
-            Adding for {selectedMember.name}
+            {t('search.addingFor', { name: selectedMember.name })}
           </ThemedText>
         )}
       </View>
@@ -195,9 +197,8 @@ export default function SearchScreen() {
             style={[styles.searchInput, { color: textColor }]}
             value={query}
             onChangeText={setQuery}
-            placeholder="Search by title, author, or ISBN..."
+            placeholder={t('search.placeholder')}
             placeholderTextColor={placeholderColor}
-            autoCapitalize="none"
             autoCorrect={false}
             returnKeyType="search"
             clearButtonMode="while-editing"
@@ -214,12 +215,12 @@ export default function SearchScreen() {
       {!selectedMember ? (
         <View style={styles.centerState}>
           <IconSymbol name="person.crop.circle.badge.exclamationmark" size={48} color={accentColor} />
-          <ThemedText style={styles.stateText}>Select a family member first</ThemedText>
+          <ThemedText style={styles.stateText}>{t('search.selectMemberFirst')}</ThemedText>
           <Pressable
             style={[styles.retryButton, { backgroundColor: accentColor }]}
             onPress={() => router.push('/(tabs)/family')}
           >
-            <ThemedText style={styles.retryButtonText}>Go to Family</ThemedText>
+            <ThemedText style={styles.retryButtonText}>{t('common.goToFamily')}</ThemedText>
           </Pressable>
         </View>
       ) : results.length > 0 ? (

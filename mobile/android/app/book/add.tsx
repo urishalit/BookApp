@@ -12,6 +12,7 @@ import {
 import { useRouter } from 'expo-router';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
+import { useTranslation } from 'react-i18next';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
@@ -25,6 +26,7 @@ import { uploadBookCover } from '@/lib/storage';
 import type { BookStatus } from '@/types/models';
 
 export default function AddBookScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const { selectedMember, selectedMemberId } = useFamily();
   const { addBook } = useBookOperations();
@@ -60,7 +62,7 @@ export default function AddBookScreen() {
   const handleTakePhoto = useCallback(async () => {
     const permission = await ImagePicker.requestCameraPermissionsAsync();
     if (!permission.granted) {
-      Alert.alert('Permission Required', 'Please allow camera access to take photos.');
+      Alert.alert(t('addBook.permissionRequired'), t('addBook.cameraPermission'));
       return;
     }
 
@@ -73,28 +75,28 @@ export default function AddBookScreen() {
     if (!result.canceled && result.assets[0]) {
       setCoverUri(result.assets[0].uri);
     }
-  }, []);
+  }, [t]);
 
   const handleImageOptions = useCallback(() => {
     Alert.alert(
-      'Add Cover Image',
-      'Choose how to add a cover image',
+      t('addBook.addCoverImage'),
+      t('addBook.chooseCoverMethod'),
       [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Take Photo', onPress: handleTakePhoto },
-        { text: 'Choose from Library', onPress: handlePickImage },
+        { text: t('common.cancel'), style: 'cancel' },
+        { text: t('member.takePhoto'), onPress: handleTakePhoto },
+        { text: t('member.chooseFromLibrary'), onPress: handlePickImage },
       ]
     );
-  }, [handlePickImage, handleTakePhoto]);
+  }, [handlePickImage, handleTakePhoto, t]);
 
   const handleSubmit = useCallback(async () => {
     if (!title.trim()) {
-      Alert.alert('Required', 'Please enter a book title.');
+      Alert.alert(t('common.required'), t('addBook.titleRequired'));
       return;
     }
 
     if (!author.trim()) {
-      Alert.alert('Required', 'Please enter an author name.');
+      Alert.alert(t('common.required'), t('addBook.authorRequired'));
       return;
     }
 
@@ -140,13 +142,13 @@ export default function AddBookScreen() {
       <ThemedView style={styles.container}>
         <View style={styles.emptyContainer}>
           <ThemedText style={styles.emptyText}>
-            Please select a family member first.
+            {t('addBook.selectMemberFirst')}
           </ThemedText>
           <Pressable
             style={[styles.button, { backgroundColor: primaryColor }]}
             onPress={() => router.push('/(tabs)/family')}
           >
-            <ThemedText style={styles.buttonText}>Go to Family</ThemedText>
+            <ThemedText style={styles.buttonText}>{t('common.goToFamily')}</ThemedText>
           </Pressable>
         </View>
       </ThemedView>
@@ -175,7 +177,7 @@ export default function AddBookScreen() {
               <View style={styles.coverPlaceholder}>
                 <IconSymbol name="photo" size={48} color={placeholderColor} />
                 <ThemedText style={[styles.coverPlaceholderText, { color: placeholderColor }]}>
-                  Add Cover
+                  {t('addBook.addCover')}
                 </ThemedText>
               </View>
             )}
@@ -183,7 +185,7 @@ export default function AddBookScreen() {
 
           {/* Title Input */}
           <View style={styles.inputGroup}>
-            <ThemedText style={styles.label}>Title *</ThemedText>
+            <ThemedText style={styles.label}>{t('addBook.bookTitle')}</ThemedText>
             <TextInput
               style={[
                 styles.input,
@@ -191,7 +193,7 @@ export default function AddBookScreen() {
               ]}
               value={title}
               onChangeText={setTitle}
-              placeholder="Enter book title"
+              placeholder={t('addBook.titlePlaceholder')}
               placeholderTextColor={placeholderColor}
               autoCapitalize="words"
               returnKeyType="next"
@@ -200,7 +202,7 @@ export default function AddBookScreen() {
 
           {/* Author Input */}
           <View style={styles.inputGroup}>
-            <ThemedText style={styles.label}>Author *</ThemedText>
+            <ThemedText style={styles.label}>{t('addBook.author')}</ThemedText>
             <TextInput
               style={[
                 styles.input,
@@ -208,7 +210,7 @@ export default function AddBookScreen() {
               ]}
               value={author}
               onChangeText={setAuthor}
-              placeholder="Enter author name"
+              placeholder={t('addBook.authorPlaceholder')}
               placeholderTextColor={placeholderColor}
               autoCapitalize="words"
               returnKeyType="done"
@@ -217,7 +219,7 @@ export default function AddBookScreen() {
 
           {/* Status Selector */}
           <View style={styles.inputGroup}>
-            <ThemedText style={styles.label}>Reading Status</ThemedText>
+            <ThemedText style={styles.label}>{t('addBook.readingStatus')}</ThemedText>
             <View style={[styles.statusContainer, { backgroundColor: cardBg }]}>
               {getAllStatuses().map((s) => {
                 const config = getStatusConfig(s);
@@ -237,7 +239,7 @@ export default function AddBookScreen() {
                         { color: isActive ? '#FFFFFF' : textColor },
                       ]}
                     >
-                      {config.label}
+                      {t(config.label)}
                     </ThemedText>
                   </Pressable>
                 );
@@ -247,7 +249,7 @@ export default function AddBookScreen() {
 
           {/* Series Picker */}
           <View style={styles.inputGroup}>
-            <ThemedText style={styles.label}>Series (Optional)</ThemedText>
+            <ThemedText style={styles.label}>{t('addBook.seriesOptional')}</ThemedText>
             <SeriesPicker
               selectedSeriesId={seriesId}
               onSeriesSelect={(id) => setSeriesId(id)}
@@ -259,7 +261,7 @@ export default function AddBookScreen() {
           {/* Adding for member info */}
           <View style={[styles.memberNote, { backgroundColor: inputBg }]}>
             <ThemedText style={styles.memberNoteText}>
-              Adding book for: <ThemedText style={{ fontWeight: '600' }}>{selectedMember.name}</ThemedText>
+              {t('addBook.addingFor')} <ThemedText style={{ fontWeight: '600' }}>{selectedMember.name}</ThemedText>
             </ThemedText>
           </View>
 
@@ -274,7 +276,7 @@ export default function AddBookScreen() {
             disabled={isSubmitting}
           >
             <ThemedText style={styles.submitButtonText}>
-              {isSubmitting ? 'Adding...' : 'Add Book'}
+              {isSubmitting ? t('addBook.adding') : t('addBook.addBook')}
             </ThemedText>
           </Pressable>
         </ScrollView>

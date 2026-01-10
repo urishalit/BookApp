@@ -8,6 +8,7 @@ import {
   Alert,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { BookCard } from '@/components/book-card';
@@ -23,14 +24,8 @@ import type { MemberBook, BookStatus, Series } from '@/types/models';
 
 type FilterTab = 'all' | BookStatus;
 
-const FILTER_TABS: { key: FilterTab; label: string }[] = [
-  { key: 'all', label: 'All' },
-  { key: 'reading', label: 'Reading' },
-  { key: 'to-read', label: 'To Read' },
-  { key: 'read', label: 'Read' },
-];
-
 export default function BooksScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const [activeFilter, setActiveFilter] = useState<FilterTab>('all');
   
@@ -82,34 +77,34 @@ export default function BooksScreen() {
       try {
         await updateBookStatus(book.libraryEntryId, nextStatus);
       } catch (err) {
-        Alert.alert('Error', 'Failed to update book status');
+        Alert.alert(t('common.error'), t('books.failedToUpdateStatus'));
       }
     },
-    [updateBookStatus]
+    [updateBookStatus, t]
   );
 
   const handleDeleteBook = useCallback(
     (book: MemberBook) => {
       Alert.alert(
-        'Remove Book',
-        `Are you sure you want to remove "${book.title}" from your library?`,
+        t('books.removeBook'),
+        t('books.removeBookConfirm', { title: book.title }),
         [
-          { text: 'Cancel', style: 'cancel' },
+          { text: t('common.cancel'), style: 'cancel' },
           {
-            text: 'Remove',
+            text: t('common.remove'),
             style: 'destructive',
             onPress: async () => {
               try {
                 await removeBook(book.libraryEntryId);
               } catch (err) {
-                Alert.alert('Error', 'Failed to remove book');
+                Alert.alert(t('common.error'), t('books.failedToRemove'));
               }
             },
           },
         ]
       );
     },
-    [removeBook]
+    [removeBook, t]
   );
 
   const handleAddBook = useCallback(() => {
@@ -151,16 +146,16 @@ export default function BooksScreen() {
             <IconSymbol name="person.3.fill" size={64} color={primaryColor} />
           </View>
           <ThemedText type="title" style={styles.emptyTitle}>
-            Select a Family Member
+            {t('books.selectFamilyMember')}
           </ThemedText>
           <ThemedText style={styles.emptyText}>
-            Choose a family member from the Family tab to view and manage their books.
+            {t('books.selectFamilyMemberDescription')}
           </ThemedText>
           <Pressable
             style={[styles.emptyButton, { backgroundColor: primaryColor }]}
             onPress={handleSelectMember}
           >
-            <ThemedText style={styles.emptyButtonText}>Go to Family</ThemedText>
+            <ThemedText style={styles.emptyButtonText}>{t('common.goToFamily')}</ThemedText>
           </Pressable>
         </View>
       );
@@ -172,12 +167,12 @@ export default function BooksScreen() {
           <IconSymbol name="book.fill" size={64} color={primaryColor} />
         </View>
         <ThemedText type="title" style={styles.emptyTitle}>
-          No Books Yet
+          {t('books.noBooksYet')}
         </ThemedText>
         <ThemedText style={styles.emptyText}>
           {activeFilter === 'all'
-            ? "Add some books to start tracking!"
-            : `No books with "${activeFilter}" status.`}
+            ? t('books.addBooksToStart')
+            : t('books.noBooksWithStatus', { status: t(`bookStatus.${activeFilter === 'to-read' ? 'toRead' : activeFilter}`) })}
         </ThemedText>
         {activeFilter === 'all' && (
           <Pressable
@@ -185,16 +180,23 @@ export default function BooksScreen() {
             onPress={handleAddBook}
           >
             <IconSymbol name="plus" size={20} color="#FFFFFF" />
-            <ThemedText style={styles.emptyButtonText}>Add First Book</ThemedText>
+            <ThemedText style={styles.emptyButtonText}>{t('books.addFirstBook')}</ThemedText>
           </Pressable>
         )}
       </View>
     );
   };
 
+  const filterTabs: { key: FilterTab; labelKey: string }[] = [
+    { key: 'all', labelKey: 'books.all' },
+    { key: 'reading', labelKey: 'bookStatus.reading' },
+    { key: 'to-read', labelKey: 'bookStatus.toRead' },
+    { key: 'read', labelKey: 'bookStatus.read' },
+  ];
+
   const renderFilterTabs = () => (
     <View style={[styles.tabContainer, { borderColor: tabBorderColor }]}>
-      {FILTER_TABS.map((tab) => {
+      {filterTabs.map((tab) => {
         const isActive = activeFilter === tab.key;
         const count = counts[tab.key];
         
@@ -214,7 +216,7 @@ export default function BooksScreen() {
                 isActive && styles.tabLabelActive,
               ]}
             >
-              {tab.label}
+              {t(tab.labelKey)}
             </ThemedText>
             {count > 0 && (
               <View
@@ -236,7 +238,7 @@ export default function BooksScreen() {
     return (
       <ThemedView style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={primaryColor} />
-        <ThemedText style={styles.loadingText}>Loading books...</ThemedText>
+        <ThemedText style={styles.loadingText}>{t('books.loadingBooks')}</ThemedText>
       </ThemedView>
     );
   }
@@ -256,7 +258,7 @@ export default function BooksScreen() {
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <ThemedText type="title" style={styles.headerTitle}>
-            Books
+            {t('books.title')}
           </ThemedText>
           {selectedMember && (
             <Pressable style={styles.memberInfo} onPress={handleSelectMember}>

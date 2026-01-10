@@ -136,4 +136,60 @@ jest.mock('react-native', () => ({
   StyleSheet: {
     create: jest.fn((styles) => styles),
   },
+  I18nManager: {
+    isRTL: false,
+    allowRTL: jest.fn(),
+    forceRTL: jest.fn(),
+  },
+  Alert: {
+    alert: jest.fn(),
+  },
+}));
+
+// Mock expo-localization
+jest.mock('expo-localization', () => ({
+  getLocales: jest.fn(() => [{ languageCode: 'en' }]),
+}));
+
+// Mock AsyncStorage
+jest.mock('@react-native-async-storage/async-storage', () => ({
+  default: {
+    setItem: jest.fn(() => Promise.resolve()),
+    getItem: jest.fn(() => Promise.resolve(null)),
+    removeItem: jest.fn(() => Promise.resolve()),
+  },
+}));
+
+// Mock i18next
+jest.mock('i18next', () => {
+  const i18n = {
+    use: jest.fn(() => i18n),
+    init: jest.fn(() => Promise.resolve()),
+    t: jest.fn((key) => key),
+    changeLanguage: jest.fn((lng) => {
+      i18n.language = lng;
+      return Promise.resolve();
+    }),
+    on: jest.fn(),
+    language: 'en',
+  };
+  return {
+    __esModule: true,
+    default: i18n,
+  };
+});
+
+// Mock react-i18next
+jest.mock('react-i18next', () => ({
+  useTranslation: () => ({
+    t: (key) => key,
+    i18n: {
+      changeLanguage: jest.fn(),
+      language: 'en',
+    },
+  }),
+  initReactI18next: {
+    type: '3rdParty',
+    init: jest.fn(),
+  },
 }));

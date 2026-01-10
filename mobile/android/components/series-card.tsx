@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, StyleSheet, Pressable } from 'react-native';
 import { Image } from 'expo-image';
+import { useTranslation } from 'react-i18next';
 import { ThemedText } from '@/components/themed-text';
 import { SeriesProgress } from '@/components/series-progress';
 import { IconSymbol } from '@/components/ui/icon-symbol';
@@ -24,6 +25,7 @@ export function SeriesCard({
   onAddToLibrary,
   showAddButton = true,
 }: SeriesCardProps) {
+  const { t } = useTranslation();
   const cardBackground = useThemeColor({}, 'background');
   const borderColor = useThemeColor(
     { light: '#E5D4C0', dark: '#2D3748' },
@@ -88,7 +90,7 @@ export function SeriesCard({
             {series.name}
           </ThemedText>
           <ThemedText style={[styles.bookCount, { color: subtitleColor }]}>
-            {series.totalBooks} {series.totalBooks === 1 ? 'book' : 'books'} in series
+            {t('seriesCard.booksInSeries', { count: series.totalBooks })}
           </ThemedText>
         </View>
 
@@ -110,11 +112,11 @@ export function SeriesCard({
               }}
             >
               <IconSymbol name="plus" size={14} color="#FFFFFF" />
-              <ThemedText style={styles.addButtonText}>Add to Library</ThemedText>
+              <ThemedText style={styles.addButtonText}>{t('seriesCard.addToLibrary')}</ThemedText>
             </Pressable>
           ) : (
             <ThemedText style={[styles.notInLibraryText, { color: subtitleColor }]}>
-              Not in your library
+              {t('seriesCard.notInLibrary')}
             </ThemedText>
           )}
         </View>

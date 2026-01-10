@@ -11,6 +11,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { MemberAvatar } from '@/components/member-avatar';
@@ -22,6 +23,7 @@ import { getSuggestedColor } from '@/constants/member-colors';
 import * as ImagePicker from 'expo-image-picker';
 
 export default function CreateMemberScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const { members } = useFamily();
   const { addMember } = useMemberOperations();
@@ -48,8 +50,8 @@ export default function CreateMemberScreen() {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== 'granted') {
         Alert.alert(
-          'Permission Required',
-          'Please grant photo library access to select an avatar.'
+          t('member.permissionRequired'),
+          t('member.photoLibraryPermission')
         );
         return;
       }
@@ -66,17 +68,17 @@ export default function CreateMemberScreen() {
       }
     } catch (error) {
       console.error('Image picker error:', error);
-      Alert.alert('Error', 'Failed to pick image');
+      Alert.alert(t('common.error'), t('member.failedToPickImage'));
     }
-  }, []);
+  }, [t]);
 
   const handleTakePhoto = useCallback(async () => {
     try {
       const { status } = await ImagePicker.requestCameraPermissionsAsync();
       if (status !== 'granted') {
         Alert.alert(
-          'Permission Required',
-          'Please grant camera access to take a photo.'
+          t('member.permissionRequired'),
+          t('member.cameraPermission')
         );
         return;
       }
@@ -92,23 +94,23 @@ export default function CreateMemberScreen() {
       }
     } catch (error) {
       console.error('Camera error:', error);
-      Alert.alert('Error', 'Failed to take photo');
+      Alert.alert(t('common.error'), t('member.failedToTakePhoto'));
     }
-  }, []);
+  }, [t]);
 
   const handleAvatarPress = useCallback(() => {
-    Alert.alert('Choose Avatar', 'Select an option', [
-      { text: 'Take Photo', onPress: handleTakePhoto },
-      { text: 'Choose from Library', onPress: handlePickImage },
-      ...(avatarUri ? [{ text: 'Remove Avatar', onPress: () => setAvatarUri(null), style: 'destructive' as const }] : []),
-      { text: 'Cancel', style: 'cancel' as const },
+    Alert.alert(t('member.chooseAvatar'), undefined, [
+      { text: t('member.takePhoto'), onPress: handleTakePhoto },
+      { text: t('member.chooseFromLibrary'), onPress: handlePickImage },
+      ...(avatarUri ? [{ text: t('member.removeAvatar'), onPress: () => setAvatarUri(null), style: 'destructive' as const }] : []),
+      { text: t('common.cancel'), style: 'cancel' as const },
     ]);
-  }, [handleTakePhoto, handlePickImage, avatarUri]);
+  }, [handleTakePhoto, handlePickImage, avatarUri, t]);
 
   const handleSubmit = useCallback(async () => {
     const trimmedName = name.trim();
     if (!trimmedName) {
-      Alert.alert('Name Required', 'Please enter a name for the family member.');
+      Alert.alert(t('member.nameRequired'), t('member.nameRequiredMessage'));
       return;
     }
 
@@ -122,11 +124,11 @@ export default function CreateMemberScreen() {
       router.back();
     } catch (error) {
       console.error('Failed to create member:', error);
-      Alert.alert('Error', 'Failed to create family member. Please try again.');
+      Alert.alert(t('common.error'), t('member.failedToCreate'));
     } finally {
       setIsSubmitting(false);
     }
-  }, [name, color, avatarUri, addMember, router]);
+  }, [name, color, avatarUri, addMember, router, t]);
 
   const canSubmit = name.trim().length > 0 && !isSubmitting;
 
@@ -142,7 +144,7 @@ export default function CreateMemberScreen() {
             <IconSymbol name="xmark" size={24} color={textColor} />
           </Pressable>
           <ThemedText type="title" style={styles.headerTitle}>
-            Add Member
+            {t('member.addMember')}
           </ThemedText>
           <View style={styles.headerSpacer} />
         </View>
@@ -166,13 +168,13 @@ export default function CreateMemberScreen() {
                 <IconSymbol name="camera.fill" size={16} color="#FFFFFF" />
               </View>
             </Pressable>
-            <ThemedText style={styles.avatarHint}>Tap to add photo</ThemedText>
+            <ThemedText style={styles.avatarHint}>{t('member.tapToAddPhoto')}</ThemedText>
           </View>
 
           {/* Name Input */}
           <View style={styles.inputSection}>
             <ThemedText type="subtitle" style={styles.label}>
-              Name
+              {t('member.name')}
             </ThemedText>
             <TextInput
               style={[
@@ -185,7 +187,7 @@ export default function CreateMemberScreen() {
               ]}
               value={name}
               onChangeText={setName}
-              placeholder="Enter name..."
+              placeholder={t('member.namePlaceholder')}
               placeholderTextColor={placeholderColor}
               autoCapitalize="words"
               autoCorrect={false}
@@ -196,7 +198,7 @@ export default function CreateMemberScreen() {
           {/* Color Picker */}
           <View style={styles.inputSection}>
             <ThemedText type="subtitle" style={styles.label}>
-              Color
+              {t('member.color')}
             </ThemedText>
             <ColorPicker selectedColor={color} onColorSelect={setColor} />
           </View>
@@ -217,7 +219,7 @@ export default function CreateMemberScreen() {
             ) : (
               <>
                 <IconSymbol name="checkmark" size={20} color="#FFFFFF" />
-                <ThemedText style={styles.submitText}>Add Member</ThemedText>
+                <ThemedText style={styles.submitText}>{t('member.addMember')}</ThemedText>
               </>
             )}
           </Pressable>

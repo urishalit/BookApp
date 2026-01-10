@@ -4,6 +4,7 @@ import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import 'react-native-reanimated';
+import '@/lib/i18n'; // Initialize i18n
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuthStateListener, useAuth } from '@/hooks/use-auth';

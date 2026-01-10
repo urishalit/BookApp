@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, StyleSheet, Pressable } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { ThemedText } from '@/components/themed-text';
 import type { BookStatus } from '@/types/models';
 
@@ -9,25 +10,26 @@ interface BookStatusBadgeProps {
   onPress?: () => void;
 }
 
-const STATUS_CONFIG: Record<BookStatus, { label: string; color: string; bgColor: string }> = {
+const STATUS_CONFIG: Record<BookStatus, { labelKey: string; color: string; bgColor: string }> = {
   reading: {
-    label: 'Reading',
+    labelKey: 'bookStatus.reading',
     color: '#FFFFFF',
     bgColor: '#4CAF50',
   },
   'to-read': {
-    label: 'To Read',
+    labelKey: 'bookStatus.toRead',
     color: '#FFFFFF',
     bgColor: '#FF9800',
   },
   read: {
-    label: 'Read',
+    labelKey: 'bookStatus.read',
     color: '#FFFFFF',
     bgColor: '#2196F3',
   },
 };
 
 export function BookStatusBadge({ status, size = 'medium', onPress }: BookStatusBadgeProps) {
+  const { t } = useTranslation();
   const config = STATUS_CONFIG[status];
   const isSmall = size === 'small';
 
@@ -46,7 +48,7 @@ export function BookStatusBadge({ status, size = 'medium', onPress }: BookStatus
           isSmall && styles.labelSmall,
         ]}
       >
-        {config.label}
+        {t(config.labelKey)}
       </ThemedText>
     </View>
   );
@@ -63,10 +65,15 @@ export function BookStatusBadge({ status, size = 'medium', onPress }: BookStatus
 }
 
 /**
- * Get the status display configuration
+ * Get the status display configuration with translated label
  */
 export function getStatusConfig(status: BookStatus) {
-  return STATUS_CONFIG[status];
+  const config = STATUS_CONFIG[status];
+  return {
+    ...config,
+    label: config.labelKey, // Return the key, consumer should use t() to translate
+    bgColor: config.bgColor,
+  };
 }
 
 /**

@@ -5,9 +5,12 @@ import {
   StyleSheet,
   ActivityIndicator,
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '@/stores/auth-store';
+import { LanguageSwitcher } from '@/components/language-switcher';
 
 export default function LoginScreen() {
+  const { t } = useTranslation();
   const { signInWithGoogle, isLoading, error, clearError } = useAuthStore();
 
   const handleGoogleSignIn = async () => {
@@ -21,11 +24,16 @@ export default function LoginScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.content}>
+        {/* Language Switcher */}
+        <View style={styles.languageSwitcher}>
+          <LanguageSwitcher compact />
+        </View>
+
         {/* Header */}
         <View style={styles.header}>
           <Text style={styles.logo}>📚</Text>
-          <Text style={styles.title}>Family Book Keeper</Text>
-          <Text style={styles.subtitle}>Track your family&apos;s reading journey</Text>
+          <Text style={styles.title}>{t('auth.title')}</Text>
+          <Text style={styles.subtitle}>{t('auth.subtitle')}</Text>
         </View>
 
         {/* Sign In Section */}
@@ -49,20 +57,20 @@ export default function LoginScreen() {
             ) : (
               <View style={styles.googleButtonContent}>
                 <Text style={styles.googleIcon}>G</Text>
-                <Text style={styles.googleButtonText}>Continue with Google</Text>
+                <Text style={styles.googleButtonText}>{t('auth.continueWithGoogle')}</Text>
               </View>
             )}
           </TouchableOpacity>
 
           <Text style={styles.termsText}>
-            By continuing, you agree to our Terms of Service and Privacy Policy
+            {t('auth.termsText')}
           </Text>
         </View>
 
         {/* Footer */}
         <View style={styles.footer}>
           <Text style={styles.footerText}>
-            Your books, your family, all in one place
+            {t('auth.footerText')}
           </Text>
         </View>
       </View>
@@ -79,6 +87,11 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     paddingHorizontal: 24,
+  },
+  languageSwitcher: {
+    position: 'absolute',
+    top: 60,
+    right: 24,
   },
   header: {
     alignItems: 'center',
