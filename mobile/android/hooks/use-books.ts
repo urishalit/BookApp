@@ -104,9 +104,30 @@ export function useBooksListener() {
 
   return {
     books,
+    familyBooks: libraryState.familyBooks,
     isLoading: libraryState.isLoading,
     error: null,
   };
+}
+
+/**
+ * Hook to get all unique genres from family books
+ * Useful for autocomplete suggestions
+ */
+export function useExistingGenres(): string[] {
+  const { familyBooks } = useBooksListener();
+  
+  return useMemo(() => {
+    const genreSet = new Set<string>();
+    for (const book of familyBooks) {
+      if (book.genres) {
+        for (const genre of book.genres) {
+          genreSet.add(genre.toLowerCase());
+        }
+      }
+    }
+    return Array.from(genreSet).sort();
+  }, [familyBooks]);
 }
 
 /**

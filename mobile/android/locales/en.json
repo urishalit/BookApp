@@ -195,9 +195,8 @@
   },
   "genrePicker": {
     "title": "Genres",
-    "addCustom": "Add custom genre",
-    "customPlaceholder": "Enter genre name...",
-    "noGenres": "No genres selected",
-    "addGenre": "Add"
+    "searchPlaceholder": "Search or add genre...",
+    "addCustom": "Add \"{{genre}}\"",
+    "noGenres": "No genres selected"
   }
 }

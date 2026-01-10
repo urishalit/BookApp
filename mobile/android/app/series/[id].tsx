@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useState, useMemo } from 'react';
 import {
   View,
   StyleSheet,
@@ -9,17 +9,21 @@ import {
   TextInput,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { BookCard } from '@/components/book-card';
 import { SeriesProgress } from '@/components/series-progress';
+import { GenreBadge } from '@/components/genre-badge';
 import { useSeriesDetail, useSeriesOperations } from '@/hooks/use-series';
 import { useBookOperations, getNextStatus } from '@/hooks/use-books';
 import { useThemeColor } from '@/hooks/use-theme-color';
+import { getGenresByFrequency } from '@/constants/genres';
 import type { SeriesBookDisplay } from '@/types/models';
 
 export default function SeriesDetailScreen() {
+  const { t } = useTranslation();
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { series, books, isLoading } = useSeriesDetail(id);
@@ -37,6 +41,12 @@ export default function SeriesDetailScreen() {
   const subtitleColor = useThemeColor({ light: '#666666', dark: '#999999' }, 'text');
   const inputBg = useThemeColor({ light: '#F5F5F5', dark: '#1A2129' }, 'background');
   const textColor = useThemeColor({}, 'text');
+
+  // Compute genres from all books in series, sorted by frequency
+  const seriesGenres = useMemo(() => {
+    const bookGenres = books.map(b => b.genres);
+    return getGenresByFrequency(bookGenres);
+  }, [books]);
 
   const handleBookPress = useCallback(
     (book: SeriesBookDisplay) => {
@@ -238,6 +248,20 @@ export default function SeriesDetailScreen() {
           </View>
         )}
 
+        {/* Genres (computed from books) */}
+        {!isEditing && seriesGenres.length > 0 && (
+          <View style={styles.genresContainer}>
+            <ThemedText style={[styles.genresLabel, { color: subtitleColor }]}>
+              {t('genrePicker.title')}
+            </ThemedText>
+            <View style={styles.genresList}>
+              {seriesGenres.map((genre) => (
+                <GenreBadge key={genre} genre={genre} size="medium" />
+              ))}
+            </View>
+          </View>
+        )}
+
         {/* Edit/Save Buttons */}
         {isEditing ? (
           <View style={styles.editButtons}>
@@ -402,6 +426,22 @@ const styles = StyleSheet.create({
   progressContainer: {
     width: '100%',
     marginTop: 8,
+  },
+  genresContainer: {
+    width: '100%',
+    marginTop: 12,
+    gap: 8,
+    alignItems: 'center',
+  },
+  genresLabel: {
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  genresList: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: 8,
   },
   editLink: {
     flexDirection: 'row',

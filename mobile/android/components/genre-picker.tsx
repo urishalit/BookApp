@@ -1,10 +1,11 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo, useRef } from 'react';
 import { View, StyleSheet, TextInput, Pressable, ScrollView } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { ThemedText } from '@/components/themed-text';
 import { GenreBadge } from '@/components/genre-badge';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useThemeColor } from '@/hooks/use-theme-color';
+import { useExistingGenres } from '@/hooks/use-books';
 import { COMMON_GENRES, getGenreDisplay, normalizeGenre } from '@/constants/genres';
 
 interface GenrePickerProps {
@@ -13,9 +14,14 @@ interface GenrePickerProps {
   compact?: boolean;
 }
 
-export function GenrePicker({ selectedGenres, onGenresChange, compact = false }: GenrePickerProps) {
+export function GenrePicker({ selectedGenres, onGenresChange }: GenrePickerProps) {
   const { t } = useTranslation();
-  const [customGenre, setCustomGenre] = useState('');
+  const [inputValue, setInputValue] = useState('');
+  const [isDropdownVisible, setIsDropdownVisible] = useState(false);
+  const pendingSelectionRef = useRef<string | null>(null);
+  
+  // Get existing genres from family books for autocomplete
+  const existingGenres = useExistingGenres();
   
   const primaryColor = useThemeColor({ light: '#8B5A2B', dark: '#D4A574' }, 'text');
   const inputBg = useThemeColor({ light: '#F5F0EA', dark: '#1A2129' }, 'background');
@@ -24,40 +30,85 @@ export function GenrePicker({ selectedGenres, onGenresChange, compact = false }:
   const textColor = useThemeColor({}, 'text');
   const cardBg = useThemeColor({ light: '#FFFFFF', dark: '#1E2730' }, 'background');
   
-  const handleToggleGenre = useCallback((genre: string) => {
+  const isGenreSelected = useCallback((genre: string) => {
     const normalized = normalizeGenre(genre);
-    const isSelected = selectedGenres.some(g => normalizeGenre(g) === normalized);
-    
-    if (isSelected) {
-      onGenresChange(selectedGenres.filter(g => normalizeGenre(g) !== normalized));
-    } else {
-      onGenresChange([...selectedGenres, genre]);
-    }
-  }, [selectedGenres, onGenresChange]);
+    return selectedGenres.some(g => normalizeGenre(g) === normalized);
+  }, [selectedGenres]);
   
   const handleRemoveGenre = useCallback((genre: string) => {
     const normalized = normalizeGenre(genre);
     onGenresChange(selectedGenres.filter(g => normalizeGenre(g) !== normalized));
   }, [selectedGenres, onGenresChange]);
   
-  const handleAddCustom = useCallback(() => {
-    const trimmed = customGenre.trim();
+  const handleAddGenre = useCallback((genre: string) => {
+    const trimmed = genre.trim();
     if (!trimmed) return;
     
-    const normalized = normalizeGenre(trimmed);
-    const isAlreadySelected = selectedGenres.some(g => normalizeGenre(g) === normalized);
-    
-    if (!isAlreadySelected) {
-      onGenresChange([...selectedGenres, trimmed]);
+    if (!isGenreSelected(trimmed)) {
+      const newGenres = [...selectedGenres, trimmed];
+      onGenresChange(newGenres);
     }
     
-    setCustomGenre('');
-  }, [customGenre, selectedGenres, onGenresChange]);
+    setInputValue('');
+  }, [selectedGenres, onGenresChange, isGenreSelected]);
   
-  const isGenreSelected = (genre: string) => {
-    const normalized = normalizeGenre(genre);
-    return selectedGenres.some(g => normalizeGenre(g) === normalized);
-  };
+  const handleSubmit = useCallback(() => {
+    handleAddGenre(inputValue);
+  }, [inputValue, handleAddGenre]);
+
+  const handleFocus = useCallback(() => {
+    setIsDropdownVisible(true);
+  }, []);
+
+  const handleBlur = useCallback(() => {
+    // Check if there's a pending selection to process
+    setTimeout(() => {
+      if (pendingSelectionRef.current) {
+        const genre = pendingSelectionRef.current;
+        pendingSelectionRef.current = null;
+        handleAddGenre(genre);
+      }
+      setIsDropdownVisible(false);
+    }, 100);
+  }, [handleAddGenre]);
+
+  // Store the genre to be selected when item is touched
+  const handleItemTouchStart = useCallback((genre: string) => {
+    pendingSelectionRef.current = genre;
+  }, []);
+  
+  // Compute dropdown suggestions based on input
+  const suggestions = useMemo(() => {
+    const input = inputValue.trim().toLowerCase();
+    
+    // Combine common genres and existing genres
+    const allGenres = [...new Set([...COMMON_GENRES, ...existingGenres])];
+    
+    // Filter to matching ones that aren't already selected
+    const filtered = allGenres.filter(genre => {
+      const normalized = normalizeGenre(genre);
+      const matchesInput = input.length === 0 || normalized.includes(input);
+      const notSelected = !isGenreSelected(genre);
+      return matchesInput && notSelected;
+    });
+    
+    // Sort: prioritize common genres, then alphabetically
+    return filtered.sort((a, b) => {
+      const aIsCommon = COMMON_GENRES.includes(a);
+      const bIsCommon = COMMON_GENRES.includes(b);
+      if (aIsCommon && !bIsCommon) return -1;
+      if (!aIsCommon && bIsCommon) return 1;
+      return a.localeCompare(b);
+    }).slice(0, 8); // Limit to 8 suggestions
+  }, [inputValue, existingGenres, isGenreSelected]);
+
+  // Check if input is a new custom genre (not in suggestions)
+  const isNewCustomGenre = useMemo(() => {
+    const trimmed = inputValue.trim();
+    if (!trimmed) return false;
+    const normalized = normalizeGenre(trimmed);
+    return !suggestions.some(s => normalizeGenre(s) === normalized) && !isGenreSelected(trimmed);
+  }, [inputValue, suggestions, isGenreSelected]);
   
   return (
     <View style={styles.container}>
@@ -75,69 +126,72 @@ export function GenrePicker({ selectedGenres, onGenresChange, compact = false }:
         </View>
       )}
       
-      {/* Common Genres Quick Select */}
-      {!compact && (
-        <ScrollView 
-          horizontal 
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.quickSelectContainer}
-        >
-          {COMMON_GENRES.map((genre) => {
-            const selected = isGenreSelected(genre);
-            const { name, color } = getGenreDisplay(genre, t);
-            
-            return (
-              <Pressable
-                key={genre}
-                style={[
-                  styles.quickSelectButton,
-                  { 
-                    backgroundColor: selected ? color : cardBg,
-                    borderColor: selected ? color : inputBorder,
-                  },
-                ]}
-                onPress={() => handleToggleGenre(genre)}
-              >
-                <ThemedText
-                  style={[
-                    styles.quickSelectText,
-                    { color: selected ? '#FFFFFF' : textColor },
-                  ]}
-                >
-                  {name}
-                </ThemedText>
-              </Pressable>
-            );
-          })}
-        </ScrollView>
-      )}
-      
-      {/* Custom Genre Input */}
-      <View style={styles.customInputContainer}>
+      {/* Dropdown Input */}
+      <View style={styles.dropdownContainer}>
         <View
           style={[
             styles.inputWrapper,
             { backgroundColor: inputBg, borderColor: inputBorder },
+            isDropdownVisible && (suggestions.length > 0 || isNewCustomGenre) && styles.inputWrapperFocused,
           ]}
         >
+          <IconSymbol name="magnifyingglass" size={18} color={placeholderColor} />
           <TextInput
             style={[styles.input, { color: textColor }]}
-            value={customGenre}
-            onChangeText={setCustomGenre}
-            placeholder={t('genrePicker.customPlaceholder')}
+            value={inputValue}
+            onChangeText={setInputValue}
+            placeholder={t('genrePicker.searchPlaceholder')}
             placeholderTextColor={placeholderColor}
             returnKeyType="done"
-            onSubmitEditing={handleAddCustom}
+            onSubmitEditing={handleSubmit}
+            onFocus={handleFocus}
+            onBlur={handleBlur}
           />
-          {customGenre.trim() && (
-            <Pressable
-              style={[styles.addButton, { backgroundColor: primaryColor }]}
-              onPress={handleAddCustom}
-            >
-              <IconSymbol name="plus" size={16} color="#FFFFFF" />
+          {inputValue.length > 0 && (
+            <Pressable onPress={() => setInputValue('')} hitSlop={8}>
+              <IconSymbol name="xmark.circle.fill" size={18} color={placeholderColor} />
             </Pressable>
           )}
         </View>
+        
+        {/* Dropdown Suggestions */}
+        {isDropdownVisible && (suggestions.length > 0 || isNewCustomGenre) && (
+          <ScrollView 
+            style={[styles.dropdown, { backgroundColor: cardBg, borderColor: inputBorder }]}
+            keyboardShouldPersistTaps="always"
+            nestedScrollEnabled
+          >
+            {/* Add custom genre option */}
+            {isNewCustomGenre && (
+              <Pressable
+                style={[styles.dropdownItem, styles.customItem]}
+                onTouchStart={() => handleItemTouchStart(inputValue.trim())}
+              >
+                <View style={[styles.addIcon, { backgroundColor: primaryColor }]}>
+                  <IconSymbol name="plus" size={12} color="#FFFFFF" />
+                </View>
+                <ThemedText style={styles.dropdownText}>
+                  {t('genrePicker.addCustom', { genre: inputValue.trim() })}
+                </ThemedText>
+              </Pressable>
+            )}
+            
+            {/* Existing genre suggestions */}
+            {suggestions.map((genre) => {
+              const { name, color } = getGenreDisplay(genre, t);
+              return (
+                <Pressable
+                  key={genre}
+                  style={styles.dropdownItem}
+                  onTouchStart={() => handleItemTouchStart(genre)}
+                >
+                  <View style={[styles.genreDot, { backgroundColor: color }]} />
+                  <ThemedText style={styles.dropdownText}>{name}</ThemedText>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+        )}
       </View>
     </View>
   );
@@ -152,22 +206,8 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: 8,
   },
-  quickSelectContainer: {
-    gap: 8,
-    paddingVertical: 4,
-  },
-  quickSelectButton: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 16,
-    borderWidth: 1,
-  },
-  quickSelectText: {
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  customInputContainer: {
-    marginTop: 4,
+  dropdownContainer: {
+    zIndex: 1,
   },
   inputWrapper: {
     flexDirection: 'row',
@@ -175,19 +215,49 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 12,
     paddingHorizontal: 12,
-    paddingVertical: 4,
+    gap: 8,
+  },
+  inputWrapperFocused: {
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
   },
   input: {
     flex: 1,
     fontSize: 15,
-    paddingVertical: 10,
+    paddingVertical: 12,
   },
-  addButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+  dropdown: {
+    borderWidth: 1,
+    borderTopWidth: 0,
+    borderBottomLeftRadius: 12,
+    borderBottomRightRadius: 12,
+    overflow: 'hidden',
+    maxHeight: 280,
+  },
+  dropdownItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    gap: 10,
+  },
+  customItem: {
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#E5D4C0',
+  },
+  addIcon: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
   },
+  genreDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+  },
+  dropdownText: {
+    fontSize: 15,
+  },
 });
-
