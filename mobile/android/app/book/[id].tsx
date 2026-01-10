@@ -275,7 +275,7 @@ export default function BookDetailScreen() {
 
         {/* Reading Status */}
         <View style={[styles.statusSection, { backgroundColor: cardBg, borderColor }]}>
-          <ThemedText style={styles.sectionTitle}>Reading Status</ThemedText>
+          <ThemedText style={styles.sectionTitle}>{t('bookDetail.readingStatus')}</ThemedText>
           <View style={styles.statusOptions}>
             {getAllStatuses().map((status) => {
               const config = getStatusConfig(status);
@@ -297,7 +297,7 @@ export default function BookDetailScreen() {
                       { color: isActive ? '#FFFFFF' : config.bgColor },
                     ]}
                   >
-                    {config.label}
+                    {t(config.label)}
                   </ThemedText>
                 </Pressable>
               );
@@ -318,7 +318,7 @@ export default function BookDetailScreen() {
           onPress={handleDelete}
         >
           <IconSymbol name="trash" size={20} color="#E57373" />
-          <ThemedText style={styles.deleteButtonText}>Remove from Library</ThemedText>
+          <ThemedText style={styles.deleteButtonText}>{t('books.removeBook')}</ThemedText>
         </Pressable>
       </ScrollView>
     </ThemedView>

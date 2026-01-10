@@ -80,7 +80,7 @@ export function getStatusConfig(status: BookStatus) {
  * Get all available statuses
  */
 export function getAllStatuses(): BookStatus[] {
-  return ['reading', 'to-read', 'read'];
+  return ['to-read', 'reading', 'read'];
 }
 
 const styles = StyleSheet.create({

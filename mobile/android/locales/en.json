@@ -79,6 +79,9 @@
     "failedToRemove": "Failed to remove book",
     "failedToUpdateStatus": "Failed to update book status"
   },
+  "bookDetail": {
+    "readingStatus": "Reading Status"
+  },
   "addBook": {
     "title": "Add Book",
     "addCover": "Add Cover",

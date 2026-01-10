@@ -79,6 +79,9 @@
     "failedToRemove": "הסרת הספר נכשלה",
     "failedToUpdateStatus": "עדכון סטטוס הספר נכשל"
   },
+  "bookDetail": {
+    "readingStatus": "סטטוס קריאה"
+  },
   "addBook": {
     "title": "הוסף ספר",
     "addCover": "הוסף עטיפה",
