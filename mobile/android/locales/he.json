@@ -11,6 +11,7 @@
     "done": "סיום",
     "tryAgain": "נסה שוב",
     "goToFamily": "עבור למשפחה",
+    "goBack": "חזור",
     "required": "שדה חובה"
   },
   "tabs": {
@@ -80,7 +81,14 @@
     "failedToUpdateStatus": "עדכון סטטוס הספר נכשל"
   },
   "bookDetail": {
-    "readingStatus": "סטטוס קריאה"
+    "readingStatus": "סטטוס קריאה",
+    "loading": "טוען ספר...",
+    "notFound": "הספר לא נמצא",
+    "byAuthor": "מאת {{author}}",
+    "series": "סדרה",
+    "unknownSeries": "סדרה לא ידועה",
+    "bookNumber": "ספר #{{number}}",
+    "notInSeries": "לא חלק מסדרה"
   },
   "addBook": {
     "title": "הוסף ספר",
@@ -170,6 +178,13 @@
     "addToLibrary": "הוסף לספרייה",
     "notInLibrary": "לא בספרייה שלך",
     "booksOwned": "({{count}} בבעלות)"
+  },
+  "seriesPicker": {
+    "selectSeries": "בחר סדרה",
+    "notInSeries": "לא חלק מסדרה",
+    "bookNumber": "ספר # בסדרה:",
+    "booksOwned": "{{owned}} מתוך {{total}} ספרים",
+    "noSeriesYet": "עדיין לא נוצרו סדרות. צור סדרה מלשונית הסדרות תחילה."
   },
   "errors": {
     "generic": "משהו השתבש",

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, Pressable, Modal, FlatList } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { ThemedText } from '@/components/themed-text';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useThemeColor } from '@/hooks/use-theme-color';
@@ -18,6 +19,7 @@ export function SeriesPicker({
   seriesOrder,
   onSeriesOrderChange,
 }: SeriesPickerProps) {
+  const { t } = useTranslation();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { series } = useSeries();
 
@@ -66,7 +68,7 @@ export function SeriesPicker({
           <View style={styles.seriesItemText}>
             <ThemedText style={styles.seriesItemName}>{item.name}</ThemedText>
             <ThemedText style={[styles.seriesItemDetail, { color: subtitleColor }]}>
-              {item.booksOwned} of {item.totalBooks} books
+              {t('seriesPicker.booksOwned', { owned: item.booksOwned, total: item.totalBooks })}
             </ThemedText>
           </View>
         </View>
@@ -95,7 +97,7 @@ export function SeriesPicker({
           ]}
           numberOfLines={1}
         >
-          {selectedSeries ? selectedSeries.name : 'Not part of a series'}
+          {selectedSeries ? selectedSeries.name : t('seriesPicker.notInSeries')}
         </ThemedText>
         <IconSymbol name="chevron.down" size={16} color={subtitleColor} />
       </Pressable>
@@ -103,7 +105,7 @@ export function SeriesPicker({
       {/* Series Order Input */}
       {selectedSeries && onSeriesOrderChange && (
         <View style={styles.orderContainer}>
-          <ThemedText style={styles.orderLabel}>Book # in series:</ThemedText>
+          <ThemedText style={styles.orderLabel}>{t('seriesPicker.bookNumber')}</ThemedText>
           <View style={styles.orderButtons}>
             <Pressable
               style={[styles.orderButton, { borderColor }]}
@@ -140,7 +142,7 @@ export function SeriesPicker({
               <IconSymbol name="xmark" size={24} color={primaryColor} />
             </Pressable>
             <ThemedText type="subtitle" style={styles.modalTitle}>
-              Select Series
+              {t('seriesPicker.selectSeries')}
             </ThemedText>
             <View style={styles.modalClose} />
           </View>
@@ -168,7 +170,7 @@ export function SeriesPicker({
                     color={!selectedSeriesId ? primaryColor : subtitleColor}
                   />
                   <ThemedText style={styles.seriesItemName}>
-                    Not part of a series
+                    {t('seriesPicker.notInSeries')}
                   </ThemedText>
                 </View>
                 {!selectedSeriesId && (
@@ -179,7 +181,7 @@ export function SeriesPicker({
             ListEmptyComponent={
               <View style={styles.emptyState}>
                 <ThemedText style={[styles.emptyText, { color: subtitleColor }]}>
-                  No series created yet. Create a series from the Series tab first.
+                  {t('seriesPicker.noSeriesYet')}
                 </ThemedText>
               </View>
             }

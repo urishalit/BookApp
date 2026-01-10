@@ -61,7 +61,7 @@ export default function BookDetailScreen() {
         await updateBookStatus(book.libraryEntryId, newStatus);
       } catch (error) {
         console.error('Failed to update status:', error);
-        Alert.alert('Error', 'Failed to update book status');
+        Alert.alert(t('common.error'), t('books.failedToUpdateStatus'));
       } finally {
         setIsUpdating(false);
       }
@@ -114,12 +114,12 @@ export default function BookDetailScreen() {
     if (!book) return;
 
     Alert.alert(
-      'Remove from Library',
-      `Are you sure you want to remove "${book.title}" from your library?`,
+      t('books.removeBook'),
+      t('books.removeBookConfirm', { title: book.title }),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Remove',
+          text: t('common.remove'),
           style: 'destructive',
           onPress: async () => {
             try {
@@ -127,19 +127,19 @@ export default function BookDetailScreen() {
               router.back();
             } catch (error) {
               console.error('Failed to remove book:', error);
-              Alert.alert('Error', 'Failed to remove book from library');
+              Alert.alert(t('common.error'), t('books.failedToRemove'));
             }
           },
         },
       ]
     );
-  }, [book, removeBook, router]);
+  }, [book, removeBook, router, t]);
 
   if (isLoading) {
     return (
       <ThemedView style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={primaryColor} />
-        <ThemedText style={styles.loadingText}>Loading book...</ThemedText>
+        <ThemedText style={styles.loadingText}>{t('bookDetail.loading')}</ThemedText>
       </ThemedView>
     );
   }
@@ -148,12 +148,12 @@ export default function BookDetailScreen() {
     return (
       <ThemedView style={styles.errorContainer}>
         <IconSymbol name="book.fill" size={64} color={subtitleColor} />
-        <ThemedText style={styles.errorText}>Book not found</ThemedText>
+        <ThemedText style={styles.errorText}>{t('bookDetail.notFound')}</ThemedText>
         <Pressable
           style={[styles.button, { backgroundColor: primaryColor }]}
           onPress={() => router.back()}
         >
-          <ThemedText style={styles.buttonText}>Go Back</ThemedText>
+          <ThemedText style={styles.buttonText}>{t('common.goBack')}</ThemedText>
         </Pressable>
       </ThemedView>
     );
@@ -184,7 +184,7 @@ export default function BookDetailScreen() {
             {book.title}
           </ThemedText>
           <ThemedText style={[styles.author, { color: subtitleColor }]}>
-            by {book.author}
+            {t('bookDetail.byAuthor', { author: book.author })}
           </ThemedText>
         </View>
 
@@ -224,10 +224,10 @@ export default function BookDetailScreen() {
         {/* Series Section */}
         <View style={[styles.seriesSection, { backgroundColor: cardBg, borderColor }]}>
           <View style={styles.seriesHeader}>
-            <ThemedText style={styles.sectionTitle}>Series</ThemedText>
+            <ThemedText style={styles.sectionTitle}>{t('bookDetail.series')}</ThemedText>
             <Pressable onPress={() => setIsEditingSeries(!isEditingSeries)}>
               <ThemedText style={[styles.editLink, { color: primaryColor }]}>
-                {isEditingSeries ? 'Done' : 'Edit'}
+                {isEditingSeries ? t('common.done') : t('common.edit')}
               </ThemedText>
             </Pressable>
           </View>
@@ -255,18 +255,18 @@ export default function BookDetailScreen() {
                   >
                     <IconSymbol name="books.vertical.fill" size={20} color={primaryColor} />
                     <ThemedText style={[styles.seriesName, { color: primaryColor }]}>
-                      {series.find((s) => s.id === book.seriesId)?.name || 'Unknown Series'}
+                      {series.find((s) => s.id === book.seriesId)?.name || t('bookDetail.unknownSeries')}
                     </ThemedText>
                   </Pressable>
                   {book.seriesOrder && (
                     <ThemedText style={[styles.seriesOrderText, { color: subtitleColor }]}>
-                      Book #{book.seriesOrder}
+                      {t('bookDetail.bookNumber', { number: book.seriesOrder })}
                     </ThemedText>
                   )}
                 </>
               ) : (
                 <ThemedText style={[styles.noSeries, { color: subtitleColor }]}>
-                  Not part of a series
+                  {t('bookDetail.notInSeries')}
                 </ThemedText>
               )}
             </View>

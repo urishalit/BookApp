@@ -11,6 +11,7 @@
     "done": "Done",
     "tryAgain": "Try Again",
     "goToFamily": "Go to Family",
+    "goBack": "Go Back",
     "required": "Required"
   },
   "tabs": {
@@ -80,7 +81,14 @@
     "failedToUpdateStatus": "Failed to update book status"
   },
   "bookDetail": {
-    "readingStatus": "Reading Status"
+    "readingStatus": "Reading Status",
+    "loading": "Loading book...",
+    "notFound": "Book not found",
+    "byAuthor": "by {{author}}",
+    "series": "Series",
+    "unknownSeries": "Unknown Series",
+    "bookNumber": "Book #{{number}}",
+    "notInSeries": "Not part of a series"
   },
   "addBook": {
     "title": "Add Book",
@@ -170,6 +178,13 @@
     "addToLibrary": "Add to Library",
     "notInLibrary": "Not in your library",
     "booksOwned": "({{count}} owned)"
+  },
+  "seriesPicker": {
+    "selectSeries": "Select Series",
+    "notInSeries": "Not part of a series",
+    "bookNumber": "Book # in series:",
+    "booksOwned": "{{owned}} of {{total}} books",
+    "noSeriesYet": "No series created yet. Create a series from the Series tab first."
   },
   "errors": {
     "generic": "Something went wrong",
