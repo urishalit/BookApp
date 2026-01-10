@@ -207,7 +207,8 @@
     "addToLibraryTitle": "Add to Library",
     "addToLibraryMessage": "\"{{title}}\" is not in your library yet. Add it to view details and track your reading progress.",
     "addToLibraryButton": "Add to Library",
-    "failedToAddBook": "Failed to add book to library"
+    "failedToAddBook": "Failed to add book to library",
+    "failedToUpdateGenres": "Failed to update genres"
   },
   "errors": {
     "generic": "Something went wrong",

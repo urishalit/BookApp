@@ -384,6 +384,42 @@ describe('use-series hooks', () => {
         expect(book.libraryEntryId).toBeUndefined();
       });
     });
+
+    it('should include genres from family books', async () => {
+      const familyBooksWithGenres: FamilyBook[] = [
+        { id: 'book-1', title: 'Book 1', author: 'Author', addedBy: 'member-1', seriesId: 'series-1', seriesOrder: 1, genres: ['fantasy', 'adventure'], addedAt: {} as any },
+        { id: 'book-2', title: 'Book 2', author: 'Author', addedBy: 'member-1', seriesId: 'series-1', seriesOrder: 2, genres: ['fantasy'], addedAt: {} as any },
+        { id: 'book-3', title: 'Book 3', author: 'Author', addedBy: 'member-1', seriesId: 'series-1', seriesOrder: 3, addedAt: {} as any }, // No genres
+      ];
+
+      (firestore.onFamilyBooksSnapshot as jest.Mock).mockImplementation((_familyId, callback) => {
+        callback(familyBooksWithGenres);
+        return jest.fn();
+      });
+
+      (firestore.onMemberLibrarySnapshot as jest.Mock).mockImplementation((_familyId, _memberId, callback) => {
+        callback([]);
+        return jest.fn();
+      });
+
+      const { result } = renderHook(() => useSeriesDetail('series-1'));
+
+      await waitFor(() => {
+        expect(result.current.books.length).toBe(3);
+      });
+
+      // Book 1 should have both genres
+      const book1 = result.current.books.find(b => b.id === 'book-1');
+      expect(book1?.genres).toEqual(['fantasy', 'adventure']);
+
+      // Book 2 should have one genre
+      const book2 = result.current.books.find(b => b.id === 'book-2');
+      expect(book2?.genres).toEqual(['fantasy']);
+
+      // Book 3 should have no genres (undefined)
+      const book3 = result.current.books.find(b => b.id === 'book-3');
+      expect(book3?.genres).toBeUndefined();
+    });
   });
 
   describe('progress calculation', () => {

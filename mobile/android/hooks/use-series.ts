@@ -245,6 +245,7 @@ export function useSeriesDetail(seriesId: string | undefined) {
           author: familyBook.author,
           thumbnailUrl: familyBook.thumbnailUrl,
           googleBooksId: familyBook.googleBooksId,
+          genres: familyBook.genres,
           seriesId: familyBook.seriesId,
           seriesOrder: familyBook.seriesOrder,
           // Library status (from member's library or default)

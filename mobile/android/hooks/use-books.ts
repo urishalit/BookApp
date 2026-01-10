@@ -322,6 +322,29 @@ export function useBookOperations() {
     [family]
   );
 
+  /**
+   * Update genres for all books in a series.
+   * This replaces the genres on ALL books in the series with the new genre set.
+   */
+  const updateSeriesBooksGenres = useCallback(
+    async (seriesId: string, genres: string[]): Promise<void> => {
+      if (!family) throw new Error('No family loaded');
+
+      // Get all books in the series
+      const seriesBooks = await getSeriesBooksFromCatalog(family.id, seriesId);
+
+      // Update each book's genres
+      await Promise.all(
+        seriesBooks.map((book) =>
+          updateFamilyBook(family.id, book.id, {
+            genres: genres.length > 0 ? genres : undefined,
+          })
+        )
+      );
+    },
+    [family]
+  );
+
   return {
     addBook,
     updateBookStatus,
@@ -331,5 +354,6 @@ export function useBookOperations() {
     fetchBook,
     addSeriesToLibrary,
     getSeriesBooks,
+    updateSeriesBooksGenres,
   };
 }

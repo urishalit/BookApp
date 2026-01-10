@@ -423,5 +423,90 @@ describe('useBooks Hook', () => {
         ).rejects.toThrow('No member selected');
       });
     });
+
+    describe('updateSeriesBooksGenres', () => {
+      const mockSeriesBooks: FamilyBook[] = [
+        {
+          id: 'book-1',
+          title: 'Book One',
+          author: 'Author',
+          seriesId: 'series-1',
+          seriesOrder: 1,
+          addedBy: 'user-123',
+          addedAt: { seconds: 0, nanoseconds: 0 } as any,
+        },
+        {
+          id: 'book-2',
+          title: 'Book Two',
+          author: 'Author',
+          seriesId: 'series-1',
+          seriesOrder: 2,
+          addedBy: 'user-123',
+          addedAt: { seconds: 0, nanoseconds: 0 } as any,
+        },
+      ];
+
+      beforeEach(() => {
+        (firestoreModule.getSeriesBooksFromCatalog as jest.Mock).mockResolvedValue(mockSeriesBooks);
+        (firestoreModule.updateFamilyBook as jest.Mock).mockResolvedValue(undefined);
+      });
+
+      it('should update genres for all books in series', async () => {
+        const { result } = renderHook(() => useBookOperations());
+
+        await result.current.updateSeriesBooksGenres('series-1', ['fantasy', 'adventure']);
+
+        expect(firestoreModule.getSeriesBooksFromCatalog).toHaveBeenCalledWith('family-123', 'series-1');
+        expect(firestoreModule.updateFamilyBook).toHaveBeenCalledTimes(2);
+        expect(firestoreModule.updateFamilyBook).toHaveBeenCalledWith(
+          'family-123',
+          'book-1',
+          { genres: ['fantasy', 'adventure'] }
+        );
+        expect(firestoreModule.updateFamilyBook).toHaveBeenCalledWith(
+          'family-123',
+          'book-2',
+          { genres: ['fantasy', 'adventure'] }
+        );
+      });
+
+      it('should set genres to undefined when empty array is passed', async () => {
+        const { result } = renderHook(() => useBookOperations());
+
+        await result.current.updateSeriesBooksGenres('series-1', []);
+
+        expect(firestoreModule.updateFamilyBook).toHaveBeenCalledWith(
+          'family-123',
+          'book-1',
+          { genres: undefined }
+        );
+        expect(firestoreModule.updateFamilyBook).toHaveBeenCalledWith(
+          'family-123',
+          'book-2',
+          { genres: undefined }
+        );
+      });
+
+      it('should handle series with no books', async () => {
+        (firestoreModule.getSeriesBooksFromCatalog as jest.Mock).mockResolvedValue([]);
+
+        const { result } = renderHook(() => useBookOperations());
+
+        await result.current.updateSeriesBooksGenres('empty-series', ['fantasy']);
+
+        expect(firestoreModule.getSeriesBooksFromCatalog).toHaveBeenCalledWith('family-123', 'empty-series');
+        expect(firestoreModule.updateFamilyBook).not.toHaveBeenCalled();
+      });
+
+      it('should throw error when no family is loaded', async () => {
+        useFamilyStore.setState({ family: null });
+
+        const { result } = renderHook(() => useBookOperations());
+
+        await expect(
+          result.current.updateSeriesBooksGenres('series-1', ['fantasy'])
+        ).rejects.toThrow('No family loaded');
+      });
+    });
   });
 });

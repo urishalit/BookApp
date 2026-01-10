@@ -207,7 +207,8 @@
     "addToLibraryTitle": "הוסף לספרייה",
     "addToLibraryMessage": "\"{{title}}\" עדיין לא בספרייה שלך. הוסף אותו כדי לצפות בפרטים ולעקוב אחר התקדמות הקריאה.",
     "addToLibraryButton": "הוסף לספרייה",
-    "failedToAddBook": "הוספת הספר לספרייה נכשלה"
+    "failedToAddBook": "הוספת הספר לספרייה נכשלה",
+    "failedToUpdateGenres": "עדכון הז'אנרים נכשל"
   },
   "errors": {
     "generic": "משהו השתבש",

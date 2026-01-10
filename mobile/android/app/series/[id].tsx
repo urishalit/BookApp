@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useMemo } from 'react';
+import React, { useCallback, useState, useMemo, useEffect } from 'react';
 import {
   View,
   StyleSheet,
@@ -16,6 +16,7 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import { BookCard } from '@/components/book-card';
 import { SeriesProgress } from '@/components/series-progress';
 import { GenreBadge } from '@/components/genre-badge';
+import { GenrePicker } from '@/components/genre-picker';
 import { useSeriesDetail, useSeriesOperations } from '@/hooks/use-series';
 import { useBookOperations, getNextStatus } from '@/hooks/use-books';
 import { useThemeColor } from '@/hooks/use-theme-color';
@@ -28,12 +29,14 @@ export default function SeriesDetailScreen() {
   const router = useRouter();
   const { series, books, isLoading } = useSeriesDetail(id);
   const { editSeries, removeSeries } = useSeriesOperations();
-  const { addOrUpdateBookStatus } = useBookOperations();
+  const { addOrUpdateBookStatus, updateSeriesBooksGenres } = useBookOperations();
 
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState('');
   const [editTotalBooks, setEditTotalBooks] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  const [isEditingGenres, setIsEditingGenres] = useState(false);
+  const [localGenres, setLocalGenres] = useState<string[]>([]);
 
   const primaryColor = useThemeColor({ light: '#8B5A2B', dark: '#D4A574' }, 'text');
   const cardBg = useThemeColor({ light: '#FFFFFF', dark: '#1E2730' }, 'background');
@@ -47,6 +50,11 @@ export default function SeriesDetailScreen() {
     const bookGenres = books.map(b => b.genres);
     return getGenresByFrequency(bookGenres);
   }, [books]);
+
+  // Sync local genres with computed genres from books
+  useEffect(() => {
+    setLocalGenres(seriesGenres);
+  }, [seriesGenres]);
 
   const handleBookPress = useCallback(
     (book: SeriesBookDisplay) => {
@@ -160,7 +168,25 @@ export default function SeriesDetailScreen() {
         },
       ]
     );
-  }, [series, id, removeSeries, router]);
+  }, [series, id, removeSeries, router, t]);
+
+  const handleGenresChange = useCallback(
+    async (newGenres: string[]) => {
+      if (!id) return;
+
+      // Update local state immediately for responsive UI
+      setLocalGenres(newGenres);
+
+      // Autosave to all books in series
+      try {
+        await updateSeriesBooksGenres(id, newGenres);
+      } catch (error) {
+        console.error('Failed to update series genres:', error);
+        Alert.alert(t('common.error'), t('seriesDetail.failedToUpdateGenres'));
+      }
+    },
+    [id, updateSeriesBooksGenres, t]
+  );
 
   if (isLoading) {
     return (
@@ -248,17 +274,38 @@ export default function SeriesDetailScreen() {
           </View>
         )}
 
-        {/* Genres (computed from books) */}
-        {!isEditing && seriesGenres.length > 0 && (
-          <View style={styles.genresContainer}>
-            <ThemedText style={[styles.genresLabel, { color: subtitleColor }]}>
-              {t('genrePicker.title')}
-            </ThemedText>
-            <View style={styles.genresList}>
-              {seriesGenres.map((genre) => (
-                <GenreBadge key={genre} genre={genre} size="medium" />
-              ))}
+        {/* Genres Section */}
+        {!isEditing && (
+          <View style={styles.genresSection}>
+            <View style={styles.genresHeader}>
+              <ThemedText style={[styles.genresLabel, { color: subtitleColor }]}>
+                {t('genrePicker.title')}
+              </ThemedText>
+              <Pressable onPress={() => setIsEditingGenres(!isEditingGenres)}>
+                <ThemedText style={[styles.genresEditLink, { color: primaryColor }]}>
+                  {isEditingGenres ? t('common.done') : t('common.edit')}
+                </ThemedText>
+              </Pressable>
             </View>
+            
+            {isEditingGenres ? (
+              <GenrePicker
+                selectedGenres={localGenres}
+                onGenresChange={handleGenresChange}
+              />
+            ) : (
+              <View style={styles.genresList}>
+                {localGenres.length > 0 ? (
+                  localGenres.map((genre) => (
+                    <GenreBadge key={genre} genre={genre} size="medium" />
+                  ))
+                ) : (
+                  <ThemedText style={[styles.noGenres, { color: subtitleColor }]}>
+                    {t('genrePicker.noGenres')}
+                  </ThemedText>
+                )}
+              </View>
+            )}
           </View>
         )}
 
@@ -427,14 +474,22 @@ const styles = StyleSheet.create({
     width: '100%',
     marginTop: 8,
   },
-  genresContainer: {
+  genresSection: {
     width: '100%',
     marginTop: 12,
-    gap: 8,
+    gap: 12,
+  },
+  genresHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
   },
   genresLabel: {
-    fontSize: 13,
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  genresEditLink: {
+    fontSize: 14,
     fontWeight: '500',
   },
   genresList: {
@@ -442,6 +497,10 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     justifyContent: 'center',
     gap: 8,
+  },
+  noGenres: {
+    fontSize: 14,
+    textAlign: 'center',
   },
   editLink: {
     flexDirection: 'row',
