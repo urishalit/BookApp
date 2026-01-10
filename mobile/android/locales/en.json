@@ -245,6 +245,19 @@
     "title": "Genres",
     "searchPlaceholder": "Search or add genre...",
     "addCustom": "Add \"{{genre}}\"",
-    "noGenres": "No genres selected"
+    "noGenres": "No genres selected",
+    "addGenres": "Add genres"
+  },
+  "addFromSearch": {
+    "title": "Add Book",
+    "bookDataMissing": "Book data is missing.",
+    "failedToAdd": "Failed to add book",
+    "description": "Description",
+    "showMore": "Show more",
+    "showLess": "Show less",
+    "pageCount": "{{count}} pages",
+    "addingFor": "Adding book for: {{name}}",
+    "adding": "Adding...",
+    "addToLibrary": "Add to Library"
   }
 }

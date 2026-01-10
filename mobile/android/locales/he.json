@@ -245,6 +245,19 @@
     "title": "ז'אנרים",
     "searchPlaceholder": "חפש או הוסף ז'אנר...",
     "addCustom": "הוסף \"{{genre}}\"",
-    "noGenres": "לא נבחרו ז'אנרים"
+    "noGenres": "לא נבחרו ז'אנרים",
+    "addGenres": "הוסף ז'אנרים"
+  },
+  "addFromSearch": {
+    "title": "הוסף ספר",
+    "bookDataMissing": "נתוני הספר חסרים.",
+    "failedToAdd": "הוספת הספר נכשלה",
+    "description": "תיאור",
+    "showMore": "הצג עוד",
+    "showLess": "הצג פחות",
+    "pageCount": "{{count}} עמודים",
+    "addingFor": "מוסיף ספר עבור: {{name}}",
+    "adding": "מוסיף...",
+    "addToLibrary": "הוסף לספרייה"
   }
 }

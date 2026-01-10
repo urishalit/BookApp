@@ -74,7 +74,7 @@ export default function AddFromSearchScreen() {
 
   const handleSubmit = useCallback(async () => {
     if (!params.title || !params.author) {
-      Alert.alert(t('common.error'), 'Book data is missing.');
+      Alert.alert(t('common.error'), t('addFromSearch.bookDataMissing'));
       return;
     }
 
@@ -96,8 +96,7 @@ export default function AddFromSearchScreen() {
       router.dismiss();
     } catch (error) {
       console.error('Add book error:', error);
-      const message = error instanceof Error ? error.message : 'Failed to add book';
-      Alert.alert(t('common.error'), message);
+      Alert.alert(t('common.error'), t('addFromSearch.failedToAdd'));
     } finally {
       setIsSubmitting(false);
     }
@@ -108,13 +107,13 @@ export default function AddFromSearchScreen() {
       <ThemedView style={styles.container}>
         <View style={styles.emptyContainer}>
           <ThemedText style={styles.emptyText}>
-            Please select a family member first.
+            {t('addBook.selectMemberFirst')}
           </ThemedText>
           <Pressable
             style={[styles.button, { backgroundColor: primaryColor }]}
             onPress={() => router.push('/(tabs)/family')}
           >
-            <ThemedText style={styles.buttonText}>Go to Family</ThemedText>
+            <ThemedText style={styles.buttonText}>{t('common.goToFamily')}</ThemedText>
           </Pressable>
         </View>
       </ThemedView>
@@ -159,7 +158,7 @@ export default function AddFromSearchScreen() {
                 {params.title}
               </ThemedText>
               <ThemedText style={[styles.bookAuthor, { color: subtitleColor }]}>
-                by {params.author}
+                {t('bookDetail.byAuthor', { author: params.author })}
               </ThemedText>
 
               {/* Metadata row */}
@@ -176,7 +175,7 @@ export default function AddFromSearchScreen() {
                   <View style={styles.metaItem}>
                     <IconSymbol name="book.pages" size={14} color={subtitleColor} />
                     <ThemedText style={[styles.metaText, { color: subtitleColor }]}>
-                      {params.pageCount} {t('common.pages', 'pages')}
+                      {t('addFromSearch.pageCount', { count: parseInt(params.pageCount, 10) })}
                     </ThemedText>
                   </View>
                 )}
@@ -198,14 +197,14 @@ export default function AddFromSearchScreen() {
           {/* Description */}
           {description && (
             <View style={[styles.descriptionCard, { backgroundColor: cardBg, borderColor }]}>
-              <ThemedText style={styles.sectionLabel}>{t('common.description', 'Description')}</ThemedText>
+              <ThemedText style={styles.sectionLabel}>{t('addFromSearch.description')}</ThemedText>
               <ThemedText style={[styles.description, { color: subtitleColor }]}>
                 {shouldTruncate ? `${description.substring(0, 200)}...` : description}
               </ThemedText>
               {description.length > 200 && (
                 <Pressable onPress={() => setShowFullDescription(!showFullDescription)}>
                   <ThemedText style={[styles.showMore, { color: primaryColor }]}>
-                    {showFullDescription ? t('common.showLess', 'Show less') : t('common.showMore', 'Show more')}
+                    {showFullDescription ? t('addFromSearch.showLess') : t('addFromSearch.showMore')}
                   </ThemedText>
                 </Pressable>
               )}
@@ -231,14 +230,14 @@ export default function AddFromSearchScreen() {
             >
               <IconSymbol name="plus" size={16} color={primaryColor} />
               <ThemedText style={[styles.addGenresText, { color: primaryColor }]}>
-                {t('genrePicker.addGenre', 'Add genres')}
+                {t('genrePicker.addGenres')}
               </ThemedText>
             </Pressable>
           )}
 
           {/* Status Selector */}
           <View style={styles.inputGroup}>
-            <ThemedText style={styles.sectionLabel}>Reading Status</ThemedText>
+            <ThemedText style={styles.sectionLabel}>{t('bookDetail.readingStatus')}</ThemedText>
             <View style={[styles.statusContainer, { backgroundColor: cardBg }]}>
               {getAllStatuses().map((s) => {
                 const config = getStatusConfig(s);
@@ -258,7 +257,7 @@ export default function AddFromSearchScreen() {
                         { color: isActive ? '#FFFFFF' : textColor },
                       ]}
                     >
-                      {config.label}
+                      {t(config.label)}
                     </ThemedText>
                   </Pressable>
                 );
@@ -268,7 +267,7 @@ export default function AddFromSearchScreen() {
 
           {/* Series Picker */}
           <View style={styles.inputGroup}>
-            <ThemedText style={styles.sectionLabel}>Series (Optional)</ThemedText>
+            <ThemedText style={styles.sectionLabel}>{t('addBook.seriesOptional')}</ThemedText>
             <SeriesPicker
               selectedSeriesId={seriesId}
               onSeriesSelect={(id, order) => {
@@ -283,7 +282,7 @@ export default function AddFromSearchScreen() {
           {/* Adding for member info */}
           <View style={[styles.memberNote, { backgroundColor: inputBg }]}>
             <ThemedText style={styles.memberNoteText}>
-              Adding book for: <ThemedText style={{ fontWeight: '600' }}>{selectedMember.name}</ThemedText>
+              {t('addFromSearch.addingFor', { name: selectedMember.name })}
             </ThemedText>
           </View>
 
@@ -299,7 +298,7 @@ export default function AddFromSearchScreen() {
           >
             <IconSymbol name="plus.circle.fill" size={20} color="#FFFFFF" />
             <ThemedText style={styles.submitButtonText}>
-              {isSubmitting ? 'Adding...' : 'Add to Library'}
+              {isSubmitting ? t('addFromSearch.adding') : t('addFromSearch.addToLibrary')}
             </ThemedText>
           </Pressable>
         </ScrollView>
