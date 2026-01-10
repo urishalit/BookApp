@@ -1,14 +1,14 @@
-import React, { useState } from 'react';
-import { View, StyleSheet, Pressable, Modal, FlatList } from 'react-native';
+import React, { useState, useCallback } from 'react';
+import { View, StyleSheet, Pressable, Modal, FlatList, TextInput, Alert, ActivityIndicator } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { ThemedText } from '@/components/themed-text';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useThemeColor } from '@/hooks/use-theme-color';
-import { useSeries, SeriesWithProgress } from '@/hooks/use-series';
+import { useSeries, useSeriesOperations, SeriesWithProgress } from '@/hooks/use-series';
 
 interface SeriesPickerProps {
   selectedSeriesId?: string;
-  onSeriesSelect: (seriesId: string | undefined, seriesName?: string) => void;
+  onSeriesSelect: (seriesId: string | undefined, seriesOrder?: number) => void;
   seriesOrder?: number;
   onSeriesOrderChange?: (order: number | undefined) => void;
 }
@@ -21,29 +21,54 @@ export function SeriesPicker({
 }: SeriesPickerProps) {
   const { t } = useTranslation();
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
+  const [newSeriesName, setNewSeriesName] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { series } = useSeries();
+  const { addSeries } = useSeriesOperations();
 
   const primaryColor = useThemeColor({ light: '#8B5A2B', dark: '#D4A574' }, 'text');
   const cardBg = useThemeColor({ light: '#FFFFFF', dark: '#1E2730' }, 'background');
   const borderColor = useThemeColor({ light: '#E5D4C0', dark: '#2D3748' }, 'text');
   const subtitleColor = useThemeColor({ light: '#666666', dark: '#999999' }, 'text');
   const modalBg = useThemeColor({ light: '#F5F5F5', dark: '#151718' }, 'background');
+  const inputBg = useThemeColor({ light: '#FFFFFF', dark: '#1A2129' }, 'background');
+  const textColor = useThemeColor({}, 'text');
 
   const selectedSeries = series.find((s) => s.id === selectedSeriesId);
 
+  const handleCreateSeries = useCallback(async () => {
+    const trimmedName = newSeriesName.trim();
+    if (!trimmedName) return;
+
+    setIsSubmitting(true);
+    try {
+      const seriesId = await addSeries({ name: trimmedName, totalBooks: 0 });
+      // Pass seriesId and order 1 (first book in new series)
+      onSeriesSelect(seriesId, 1);
+      setNewSeriesName('');
+      setIsCreating(false);
+      setIsModalOpen(false);
+    } catch (error) {
+      console.error('Failed to create series:', error);
+      Alert.alert(t('common.error'), t('seriesPicker.failedToCreate'));
+    } finally {
+      setIsSubmitting(false);
+    }
+  }, [newSeriesName, addSeries, onSeriesSelect, t]);
+
+  const handleCancelCreate = useCallback(() => {
+    setNewSeriesName('');
+    setIsCreating(false);
+  }, []);
+
   const handleSelect = (item: SeriesWithProgress | null) => {
     if (item) {
-      onSeriesSelect(item.id, item.name);
-      // Suggest next order number
-      if (onSeriesOrderChange) {
-        const nextOrder = item.booksOwned + 1;
-        onSeriesOrderChange(nextOrder);
-      }
+      // Pass seriesId and suggested order (next book number)
+      const suggestedOrder = item.booksOwned + 1;
+      onSeriesSelect(item.id, suggestedOrder);
     } else {
       onSeriesSelect(undefined, undefined);
-      if (onSeriesOrderChange) {
-        onSeriesOrderChange(undefined);
-      }
     }
     setIsModalOpen(false);
   };
@@ -154,29 +179,89 @@ export function SeriesPicker({
             keyExtractor={(item) => item.id}
             contentContainerStyle={styles.modalList}
             ListHeaderComponent={
-              <Pressable
-                style={[
-                  styles.seriesItem,
-                  styles.noSeriesItem,
-                  { backgroundColor: cardBg, borderColor },
-                  !selectedSeriesId && { borderColor: primaryColor, borderWidth: 2 },
-                ]}
-                onPress={() => handleSelect(null)}
-              >
-                <View style={styles.seriesItemContent}>
-                  <IconSymbol
-                    name="book.fill"
-                    size={24}
-                    color={!selectedSeriesId ? primaryColor : subtitleColor}
-                  />
-                  <ThemedText style={styles.seriesItemName}>
-                    {t('seriesPicker.notInSeries')}
-                  </ThemedText>
-                </View>
-                {!selectedSeriesId && (
-                  <IconSymbol name="checkmark.circle.fill" size={24} color={primaryColor} />
+              <>
+                {/* Not in series option */}
+                <Pressable
+                  style={[
+                    styles.seriesItem,
+                    { backgroundColor: cardBg, borderColor },
+                    !selectedSeriesId && { borderColor: primaryColor, borderWidth: 2 },
+                  ]}
+                  onPress={() => handleSelect(null)}
+                >
+                  <View style={styles.seriesItemContent}>
+                    <IconSymbol
+                      name="book.fill"
+                      size={24}
+                      color={!selectedSeriesId ? primaryColor : subtitleColor}
+                    />
+                    <ThemedText style={styles.seriesItemName}>
+                      {t('seriesPicker.notInSeries')}
+                    </ThemedText>
+                  </View>
+                  {!selectedSeriesId && (
+                    <IconSymbol name="checkmark.circle.fill" size={24} color={primaryColor} />
+                  )}
+                </Pressable>
+
+                {/* Create new series section */}
+                {isCreating ? (
+                  <View style={[styles.createForm, { backgroundColor: cardBg, borderColor }]}>
+                    <TextInput
+                      style={[styles.createInput, { backgroundColor: inputBg, borderColor, color: textColor }]}
+                      value={newSeriesName}
+                      onChangeText={setNewSeriesName}
+                      placeholder={t('seriesPicker.seriesNamePlaceholder')}
+                      placeholderTextColor={subtitleColor}
+                      autoFocus
+                      returnKeyType="done"
+                      onSubmitEditing={handleCreateSeries}
+                      editable={!isSubmitting}
+                    />
+                    <View style={styles.createButtons}>
+                      <Pressable
+                        style={[styles.createButton, styles.cancelButton, { borderColor }]}
+                        onPress={handleCancelCreate}
+                        disabled={isSubmitting}
+                      >
+                        <ThemedText style={[styles.createButtonText, { color: subtitleColor }]}>
+                          {t('common.cancel')}
+                        </ThemedText>
+                      </Pressable>
+                      <Pressable
+                        style={[
+                          styles.createButton,
+                          styles.saveButton,
+                          { backgroundColor: primaryColor },
+                          (!newSeriesName.trim() || isSubmitting) && styles.buttonDisabled,
+                        ]}
+                        onPress={handleCreateSeries}
+                        disabled={!newSeriesName.trim() || isSubmitting}
+                      >
+                        {isSubmitting ? (
+                          <ActivityIndicator size="small" color="#FFFFFF" />
+                        ) : (
+                          <ThemedText style={[styles.createButtonText, { color: '#FFFFFF' }]}>
+                            {t('common.save')}
+                          </ThemedText>
+                        )}
+                      </Pressable>
+                    </View>
+                  </View>
+                ) : (
+                  <Pressable
+                    style={[styles.seriesItem, styles.createNewItem, { borderColor: primaryColor }]}
+                    onPress={() => setIsCreating(true)}
+                  >
+                    <View style={styles.seriesItemContent}>
+                      <IconSymbol name="plus.circle.fill" size={24} color={primaryColor} />
+                      <ThemedText style={[styles.seriesItemName, { color: primaryColor }]}>
+                        {t('seriesPicker.createNew')}
+                      </ThemedText>
+                    </View>
+                  </Pressable>
                 )}
-              </Pressable>
+              </>
             }
             ListEmptyComponent={
               <View style={styles.emptyState}>
@@ -276,8 +361,46 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     marginBottom: 8,
   },
-  noSeriesItem: {
+  createNewItem: {
+    borderStyle: 'dashed',
+    borderWidth: 2,
+    backgroundColor: 'transparent',
     marginBottom: 16,
+  },
+  createForm: {
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginBottom: 16,
+    gap: 12,
+  },
+  createInput: {
+    borderRadius: 8,
+    borderWidth: 1,
+    padding: 12,
+    fontSize: 16,
+  },
+  createButtons: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  createButton: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cancelButton: {
+    borderWidth: 1,
+  },
+  saveButton: {},
+  createButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  buttonDisabled: {
+    opacity: 0.5,
   },
   seriesItemContent: {
     flexDirection: 'row',

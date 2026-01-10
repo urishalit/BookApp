@@ -187,7 +187,10 @@
     "notInSeries": "Not part of a series",
     "bookNumber": "Book # in series:",
     "booksOwned": "{{owned}} of {{total}} books",
-    "noSeriesYet": "No series created yet. Create a series from the Series tab first."
+    "noSeriesYet": "No series created yet. Create a series from the Series tab first.",
+    "createNew": "Create New Series",
+    "seriesNamePlaceholder": "Series name",
+    "failedToCreate": "Failed to create series"
   },
   "seriesDetail": {
     "title": "Series Details",

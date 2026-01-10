@@ -187,7 +187,10 @@
     "notInSeries": "לא חלק מסדרה",
     "bookNumber": "ספר # בסדרה:",
     "booksOwned": "{{owned}} מתוך {{total}} ספרים",
-    "noSeriesYet": "עדיין לא נוצרו סדרות. צור סדרה מלשונית הסדרות תחילה."
+    "noSeriesYet": "עדיין לא נוצרו סדרות. צור סדרה מלשונית הסדרות תחילה.",
+    "createNew": "צור סדרה חדשה",
+    "seriesNamePlaceholder": "שם הסדרה",
+    "failedToCreate": "יצירת הסדרה נכשלה"
   },
   "seriesDetail": {
     "title": "פרטי סדרה",

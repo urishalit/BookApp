@@ -325,8 +325,8 @@ export default function BookDetailScreen() {
           {isEditingSeries ? (
             <SeriesPicker
               selectedSeriesId={book.seriesId}
-              onSeriesSelect={(seriesId, _name) => {
-                handleSeriesChange(seriesId, seriesId ? (book.seriesOrder || 1) : undefined);
+              onSeriesSelect={(seriesId, seriesOrder) => {
+                handleSeriesChange(seriesId, seriesOrder);
               }}
               seriesOrder={book.seriesOrder}
               onSeriesOrderChange={(order) => {

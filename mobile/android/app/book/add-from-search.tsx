@@ -271,7 +271,10 @@ export default function AddFromSearchScreen() {
             <ThemedText style={styles.sectionLabel}>Series (Optional)</ThemedText>
             <SeriesPicker
               selectedSeriesId={seriesId}
-              onSeriesSelect={(id) => setSeriesId(id)}
+              onSeriesSelect={(id, order) => {
+                setSeriesId(id);
+                if (order !== undefined) setSeriesOrder(order);
+              }}
               seriesOrder={seriesOrder}
               onSeriesOrderChange={setSeriesOrder}
             />

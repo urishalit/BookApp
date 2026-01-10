@@ -264,7 +264,10 @@ export default function AddBookScreen() {
             <ThemedText style={styles.label}>{t('addBook.seriesOptional')}</ThemedText>
             <SeriesPicker
               selectedSeriesId={seriesId}
-              onSeriesSelect={(id) => setSeriesId(id)}
+              onSeriesSelect={(id, order) => {
+                setSeriesId(id);
+                if (order !== undefined) setSeriesOrder(order);
+              }}
               seriesOrder={seriesOrder}
               onSeriesOrderChange={setSeriesOrder}
             />

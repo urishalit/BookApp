@@ -186,5 +186,68 @@ describe('SeriesPicker Component Logic', () => {
       expect(result.seriesOrder).toBe(4); // 3 books owned + 1
     });
   });
+
+  describe('create new series', () => {
+    /**
+     * Helper that mimics the handleCreateSeries logic
+     */
+    async function createSeriesLogic(
+      newSeriesName: string,
+      addSeries: (data: { name: string; totalBooks: number }) => Promise<string>
+    ): Promise<{ seriesId: string; seriesName: string; seriesOrder: number } | null> {
+      const trimmedName = newSeriesName.trim();
+      if (!trimmedName) return null;
+
+      const seriesId = await addSeries({ name: trimmedName, totalBooks: 0 });
+      return { seriesId, seriesName: trimmedName, seriesOrder: 1 };
+    }
+
+    it('should not create series with empty name', async () => {
+      const mockAddSeries = jest.fn().mockResolvedValue('new-series-id');
+      
+      const result = await createSeriesLogic('', mockAddSeries);
+      
+      expect(result).toBeNull();
+      expect(mockAddSeries).not.toHaveBeenCalled();
+    });
+
+    it('should not create series with whitespace-only name', async () => {
+      const mockAddSeries = jest.fn().mockResolvedValue('new-series-id');
+      
+      const result = await createSeriesLogic('   ', mockAddSeries);
+      
+      expect(result).toBeNull();
+      expect(mockAddSeries).not.toHaveBeenCalled();
+    });
+
+    it('should create series with valid name', async () => {
+      const mockAddSeries = jest.fn().mockResolvedValue('new-series-id');
+      
+      const result = await createSeriesLogic('My New Series', mockAddSeries);
+      
+      expect(result).not.toBeNull();
+      expect(result?.seriesId).toBe('new-series-id');
+      expect(result?.seriesName).toBe('My New Series');
+      expect(result?.seriesOrder).toBe(1); // First book in new series
+      expect(mockAddSeries).toHaveBeenCalledWith({ name: 'My New Series', totalBooks: 0 });
+    });
+
+    it('should trim whitespace from series name', async () => {
+      const mockAddSeries = jest.fn().mockResolvedValue('new-series-id');
+      
+      const result = await createSeriesLogic('  Padded Name  ', mockAddSeries);
+      
+      expect(result?.seriesName).toBe('Padded Name');
+      expect(mockAddSeries).toHaveBeenCalledWith({ name: 'Padded Name', totalBooks: 0 });
+    });
+
+    it('should always suggest order 1 for new series', async () => {
+      const mockAddSeries = jest.fn().mockResolvedValue('new-series-id');
+      
+      const result = await createSeriesLogic('Brand New Series', mockAddSeries);
+      
+      expect(result?.seriesOrder).toBe(1);
+    });
+  });
 });
 
