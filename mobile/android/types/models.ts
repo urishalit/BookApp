@@ -19,12 +19,8 @@ export interface Member {
   color: string;
 }
 
-export interface Genre {
-  id: string;
-  nameEn: string;
-  nameHe: string;
-  color: string;
-}
+// Genres are dynamic strings - no Genre interface needed
+// Common genres get translations via lookup table in constants/genres.ts
 
 /**
  * Family-level book (catalog entry).
@@ -37,7 +33,7 @@ export interface FamilyBook {
   author: string;
   thumbnailUrl?: string;
   googleBooksId?: string;
-  genreId?: string;
+  genres?: string[]; // Dynamic genre strings
   seriesId?: string;
   seriesOrder?: number;
   addedBy: string; // memberId who first added this book
@@ -71,7 +67,7 @@ export interface MemberBook {
   author: string;
   thumbnailUrl?: string;
   googleBooksId?: string;
-  genreId?: string;
+  genres?: string[]; // Dynamic genre strings
   seriesId?: string;
   seriesOrder?: number;
 }
@@ -79,7 +75,7 @@ export interface MemberBook {
 export interface Series {
   id: string;
   name: string;
-  genreId?: string;
+  // Genres are computed from books in the series, not stored
   totalBooks: number;
   createdBy?: string; // memberId of creator (optional, for tracking)
 }
@@ -96,6 +92,7 @@ export interface SeriesBookDisplay {
   author: string;
   thumbnailUrl?: string;
   googleBooksId?: string;
+  genres?: string[]; // Dynamic genre strings
   seriesId?: string;
   seriesOrder?: number;
   // Library status

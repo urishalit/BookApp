@@ -172,5 +172,32 @@
     "generic": "משהו השתבש",
     "networkError": "שגיאת רשת. אנא בדוק את החיבור שלך.",
     "permissionDenied": "הרשאה נדחתה"
+  },
+  "genres": {
+    "fiction": "בדיון",
+    "nonFiction": "עיון",
+    "fantasy": "פנטזיה",
+    "sciFi": "מדע בדיוני",
+    "mystery": "מסתורין",
+    "thriller": "מותחן",
+    "romance": "רומנטיקה",
+    "biography": "ביוגרפיה",
+    "history": "היסטוריה",
+    "children": "ילדים",
+    "youngAdult": "נוער",
+    "horror": "אימה",
+    "adventure": "הרפתקאות",
+    "comics": "קומיקס",
+    "poetry": "שירה",
+    "drama": "דרמה",
+    "selfHelp": "עזרה עצמית",
+    "business": "עסקים"
+  },
+  "genrePicker": {
+    "title": "ז'אנרים",
+    "addCustom": "הוסף ז'אנר מותאם",
+    "customPlaceholder": "הכנס שם ז'אנר...",
+    "noGenres": "לא נבחרו ז'אנרים",
+    "addGenre": "הוסף"
   }
 }

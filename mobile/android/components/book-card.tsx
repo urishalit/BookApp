@@ -3,6 +3,7 @@ import { View, StyleSheet, Pressable } from 'react-native';
 import { Image } from 'expo-image';
 import { ThemedText } from '@/components/themed-text';
 import { BookStatusBadge } from '@/components/book-status-badge';
+import { GenreBadgeList } from '@/components/genre-badge';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import type { MemberBook, SeriesBookDisplay } from '@/types/models';
 
@@ -59,6 +60,11 @@ export function BookCard({ book, seriesName, onPress, onLongPress, onStatusPress
           <ThemedText style={[styles.author, { color: subtitleColor }]} numberOfLines={1}>
             {book.author}
           </ThemedText>
+          {book.genres && book.genres.length > 0 && (
+            <View style={styles.genresRow}>
+              <GenreBadgeList genres={book.genres} size="small" maxDisplay={2} />
+            </View>
+          )}
         </View>
 
         <View style={styles.footer}>
@@ -127,6 +133,9 @@ const styles = StyleSheet.create({
   author: {
     fontSize: 14,
     marginTop: 4,
+  },
+  genresRow: {
+    marginTop: 6,
   },
   footer: {
     flexDirection: 'row',

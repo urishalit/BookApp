@@ -1,10 +1,12 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, StyleSheet, Pressable } from 'react-native';
 import { Image } from 'expo-image';
 import { useTranslation } from 'react-i18next';
 import { ThemedText } from '@/components/themed-text';
+import { GenreBadgeList } from '@/components/genre-badge';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useThemeColor } from '@/hooks/use-theme-color';
+import { getGenresByFrequency } from '@/constants/genres';
 import type { MemberBook, Series } from '@/types/models';
 
 interface SeriesRowProps {
@@ -47,6 +49,12 @@ export function SeriesRow({ series, booksInSeries, onPress, onLongPress }: Serie
 
   // Find currently reading book
   const currentlyReading = booksInSeries.find((b) => b.status === 'reading');
+
+  // Compute genres from all books in series, sorted by frequency
+  const seriesGenres = useMemo(() => {
+    const bookGenres = booksInSeries.map(b => b.genres);
+    return getGenresByFrequency(bookGenres);
+  }, [booksInSeries]);
 
   return (
     <Pressable
@@ -100,7 +108,14 @@ export function SeriesRow({ series, booksInSeries, onPress, onLongPress }: Serie
             </ThemedText>
           </View>
 
-          {/* Row 2: Currently reading (if any) */}
+          {/* Row 2: Genres (if any) */}
+          {seriesGenres.length > 0 && (
+            <View style={styles.genresRow}>
+              <GenreBadgeList genres={seriesGenres} size="small" maxDisplay={2} />
+            </View>
+          )}
+
+          {/* Row 3: Currently reading (if any) */}
           {currentlyReading && (
             <View style={styles.statusRow}>
               <IconSymbol name="book.fill" size={14} color={primaryColor} />
@@ -193,6 +208,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
+  },
+  genresRow: {
+    marginTop: 2,
   },
   statusText: {
     fontSize: 13,

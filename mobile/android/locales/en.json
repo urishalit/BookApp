@@ -172,5 +172,32 @@
     "generic": "Something went wrong",
     "networkError": "Network error. Please check your connection.",
     "permissionDenied": "Permission denied"
+  },
+  "genres": {
+    "fiction": "Fiction",
+    "nonFiction": "Non-Fiction",
+    "fantasy": "Fantasy",
+    "sciFi": "Sci-Fi",
+    "mystery": "Mystery",
+    "thriller": "Thriller",
+    "romance": "Romance",
+    "biography": "Biography",
+    "history": "History",
+    "children": "Children's",
+    "youngAdult": "Young Adult",
+    "horror": "Horror",
+    "adventure": "Adventure",
+    "comics": "Comics",
+    "poetry": "Poetry",
+    "drama": "Drama",
+    "selfHelp": "Self-Help",
+    "business": "Business"
+  },
+  "genrePicker": {
+    "title": "Genres",
+    "addCustom": "Add custom genre",
+    "customPlaceholder": "Enter genre name...",
+    "noGenres": "No genres selected",
+    "addGenre": "Add"
   }
 }

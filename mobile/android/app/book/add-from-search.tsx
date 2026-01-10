@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import {
   View,
   StyleSheet,
@@ -10,19 +10,24 @@ import {
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Image } from 'expo-image';
+import { useTranslation } from 'react-i18next';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { SeriesPicker } from '@/components/series-picker';
+import { GenrePicker } from '@/components/genre-picker';
+import { GenreBadgeList } from '@/components/genre-badge';
 import { getAllStatuses, getStatusConfig } from '@/components/book-status-badge';
 import { useBookOperations } from '@/hooks/use-books';
 import { useFamily } from '@/hooks/use-family';
 import { useThemeColor } from '@/hooks/use-theme-color';
+import { normalizeApiCategories } from '@/constants/genres';
 import type { BookStatus } from '@/types/models';
 
 const PLACEHOLDER_COVER = 'https://via.placeholder.com/128x192/E5D4C0/8B5A2B?text=No+Cover';
 
 export default function AddFromSearchScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const params = useLocalSearchParams<{
     googleBooksId: string;
@@ -32,16 +37,33 @@ export default function AddFromSearchScreen() {
     description?: string;
     pageCount?: string;
     publishedDate?: string;
+    categories?: string;
   }>();
 
   const { selectedMember } = useFamily();
   const { addBook } = useBookOperations();
 
+  // Parse and normalize categories from Google Books API
+  const initialGenres = useMemo(() => {
+    if (!params.categories) return [];
+    const categories = params.categories.split('|||').filter(Boolean);
+    return normalizeApiCategories(categories);
+  }, [params.categories]);
+
   const [status, setStatus] = useState<BookStatus>('to-read');
+  const [genres, setGenres] = useState<string[]>(initialGenres);
   const [seriesId, setSeriesId] = useState<string | undefined>();
   const [seriesOrder, setSeriesOrder] = useState<number | undefined>();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showFullDescription, setShowFullDescription] = useState(false);
+  const [showGenreEditor, setShowGenreEditor] = useState(false);
+
+  // Update genres when initialGenres changes (on first load)
+  useEffect(() => {
+    if (initialGenres.length > 0 && genres.length === 0) {
+      setGenres(initialGenres);
+    }
+  }, [initialGenres]);
 
   const primaryColor = useThemeColor({ light: '#8B5A2B', dark: '#D4A574' }, 'text');
   const cardBg = useThemeColor({ light: '#FFFFFF', dark: '#1E2730' }, 'background');
@@ -52,7 +74,7 @@ export default function AddFromSearchScreen() {
 
   const handleSubmit = useCallback(async () => {
     if (!params.title || !params.author) {
-      Alert.alert('Error', 'Book data is missing.');
+      Alert.alert(t('common.error'), 'Book data is missing.');
       return;
     }
 
@@ -65,6 +87,7 @@ export default function AddFromSearchScreen() {
         status,
         googleBooksId: params.googleBooksId,
         thumbnailUrl: params.thumbnailUrl || undefined,
+        genres: genres.length > 0 ? genres : undefined,
         seriesId,
         seriesOrder,
       });
@@ -74,11 +97,11 @@ export default function AddFromSearchScreen() {
     } catch (error) {
       console.error('Add book error:', error);
       const message = error instanceof Error ? error.message : 'Failed to add book';
-      Alert.alert('Error', message);
+      Alert.alert(t('common.error'), message);
     } finally {
       setIsSubmitting(false);
     }
-  }, [params, status, seriesId, seriesOrder, addBook, router]);
+  }, [params, status, genres, seriesId, seriesOrder, addBook, router, t]);
 
   if (!selectedMember) {
     return (
@@ -153,29 +176,64 @@ export default function AddFromSearchScreen() {
                   <View style={styles.metaItem}>
                     <IconSymbol name="book.pages" size={14} color={subtitleColor} />
                     <ThemedText style={[styles.metaText, { color: subtitleColor }]}>
-                      {params.pageCount} pages
+                      {params.pageCount} {t('common.pages', 'pages')}
                     </ThemedText>
                   </View>
                 )}
               </View>
+
+              {/* Genres from API */}
+              {genres.length > 0 && (
+                <Pressable 
+                  style={styles.genresContainer}
+                  onPress={() => setShowGenreEditor(!showGenreEditor)}
+                >
+                  <GenreBadgeList genres={genres} size="small" maxDisplay={3} />
+                  <IconSymbol name="pencil" size={14} color={subtitleColor} />
+                </Pressable>
+              )}
             </View>
           </View>
 
           {/* Description */}
           {description && (
             <View style={[styles.descriptionCard, { backgroundColor: cardBg, borderColor }]}>
-              <ThemedText style={styles.sectionLabel}>Description</ThemedText>
+              <ThemedText style={styles.sectionLabel}>{t('common.description', 'Description')}</ThemedText>
               <ThemedText style={[styles.description, { color: subtitleColor }]}>
                 {shouldTruncate ? `${description.substring(0, 200)}...` : description}
               </ThemedText>
               {description.length > 200 && (
                 <Pressable onPress={() => setShowFullDescription(!showFullDescription)}>
                   <ThemedText style={[styles.showMore, { color: primaryColor }]}>
-                    {showFullDescription ? 'Show less' : 'Show more'}
+                    {showFullDescription ? t('common.showLess', 'Show less') : t('common.showMore', 'Show more')}
                   </ThemedText>
                 </Pressable>
               )}
             </View>
+          )}
+
+          {/* Genre Editor (collapsible) */}
+          {showGenreEditor && (
+            <View style={styles.inputGroup}>
+              <ThemedText style={styles.sectionLabel}>{t('genrePicker.title')}</ThemedText>
+              <GenrePicker
+                selectedGenres={genres}
+                onGenresChange={setGenres}
+              />
+            </View>
+          )}
+
+          {/* Add genres button if none exist */}
+          {genres.length === 0 && !showGenreEditor && (
+            <Pressable 
+              style={[styles.addGenresButton, { borderColor }]}
+              onPress={() => setShowGenreEditor(true)}
+            >
+              <IconSymbol name="plus" size={16} color={primaryColor} />
+              <ThemedText style={[styles.addGenresText, { color: primaryColor }]}>
+                {t('genrePicker.addGenre', 'Add genres')}
+              </ThemedText>
+            </Pressable>
           )}
 
           {/* Status Selector */}
@@ -326,6 +384,26 @@ const styles = StyleSheet.create({
   },
   metaText: {
     fontSize: 13,
+  },
+  genresContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 8,
+  },
+  addGenresButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+  },
+  addGenresText: {
+    fontSize: 14,
+    fontWeight: '500',
   },
   descriptionCard: {
     borderRadius: 16,

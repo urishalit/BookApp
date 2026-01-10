@@ -310,7 +310,7 @@ export async function getMemberLibrary(
         author: book.author,
         thumbnailUrl: book.thumbnailUrl,
         googleBooksId: book.googleBooksId,
-        genreId: book.genreId,
+        genres: book.genres,
         seriesId: book.seriesId,
         seriesOrder: book.seriesOrder,
       });

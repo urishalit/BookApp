@@ -115,6 +115,7 @@ export default function SearchScreen() {
         description: book.description || '',
         pageCount: book.pageCount?.toString() || '',
         publishedDate: book.publishedDate || '',
+        categories: book.categories?.join('|||') || '', // Pass categories as delimited string
       },
     });
   }, [router]);

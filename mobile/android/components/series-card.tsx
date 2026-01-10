@@ -1,11 +1,13 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, StyleSheet, Pressable } from 'react-native';
 import { Image } from 'expo-image';
 import { useTranslation } from 'react-i18next';
 import { ThemedText } from '@/components/themed-text';
 import { SeriesProgress } from '@/components/series-progress';
+import { GenreBadgeList } from '@/components/genre-badge';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useThemeColor } from '@/hooks/use-theme-color';
+import { getGenresByFrequency } from '@/constants/genres';
 import type { SeriesWithProgress } from '@/hooks/use-series';
 
 interface SeriesCardProps {
@@ -45,6 +47,12 @@ export function SeriesCard({
 
   // Show stacked covers effect for series with multiple books
   const hasMultipleBooks = series.booksOwned > 1;
+
+  // Compute genres from all books in series, sorted by frequency
+  const seriesGenres = useMemo(() => {
+    const bookGenres = series.booksInSeries.map(b => b.genres);
+    return getGenresByFrequency(bookGenres);
+  }, [series.booksInSeries]);
 
   return (
     <Pressable
@@ -92,6 +100,11 @@ export function SeriesCard({
           <ThemedText style={[styles.bookCount, { color: subtitleColor }]}>
             {t('seriesCard.booksInSeries', { count: series.totalBooks })}
           </ThemedText>
+          {seriesGenres.length > 0 && (
+            <View style={styles.genresRow}>
+              <GenreBadgeList genres={seriesGenres} size="small" maxDisplay={2} />
+            </View>
+          )}
         </View>
 
         {/* Footer: Progress or Add Button */}
@@ -202,6 +215,9 @@ const styles = StyleSheet.create({
   bookCount: {
     fontSize: 13,
     marginTop: 4,
+  },
+  genresRow: {
+    marginTop: 6,
   },
   footer: {
     marginTop: 8,

@@ -196,7 +196,6 @@ describe('Firestore Helpers', () => {
       const seriesData = {
         name: 'Fantasy Series',
         totalBooks: 7,
-        genreId: 'fantasy',
       };
       
       const id = await createSeries('family-123', seriesData, 'member-123');

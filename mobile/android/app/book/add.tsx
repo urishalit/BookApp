@@ -17,6 +17,7 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { SeriesPicker } from '@/components/series-picker';
+import { GenrePicker } from '@/components/genre-picker';
 import { getAllStatuses, getStatusConfig } from '@/components/book-status-badge';
 import { useBookOperations } from '@/hooks/use-books';
 import { useFamily } from '@/hooks/use-family';
@@ -34,6 +35,7 @@ export default function AddBookScreen() {
   const [title, setTitle] = useState('');
   const [author, setAuthor] = useState('');
   const [status, setStatus] = useState<BookStatus>('to-read');
+  const [genres, setGenres] = useState<string[]>([]);
   const [coverUri, setCoverUri] = useState<string | null>(null);
   const [seriesId, setSeriesId] = useState<string | undefined>();
   const [seriesOrder, setSeriesOrder] = useState<number | undefined>();
@@ -123,6 +125,7 @@ export default function AddBookScreen() {
         author: author.trim(),
         status,
         thumbnailUrl,
+        genres: genres.length > 0 ? genres : undefined,
         seriesId,
         seriesOrder,
       });
@@ -214,6 +217,15 @@ export default function AddBookScreen() {
               placeholderTextColor={placeholderColor}
               autoCapitalize="words"
               returnKeyType="done"
+            />
+          </View>
+
+          {/* Genre Picker */}
+          <View style={styles.inputGroup}>
+            <ThemedText style={styles.label}>{t('genrePicker.title')}</ThemedText>
+            <GenrePicker
+              selectedGenres={genres}
+              onGenresChange={setGenres}
             />
           </View>
 

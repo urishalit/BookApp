@@ -31,7 +31,7 @@ const mockFamily: Family = {
 
 const mockSeries: Series[] = [
   { id: 'series-1', name: 'Harry Potter', totalBooks: 7 },
-  { id: 'series-2', name: 'Percy Jackson', totalBooks: 5, genreId: 'fantasy' },
+  { id: 'series-2', name: 'Percy Jackson', totalBooks: 5 },
 ];
 
 const mockFamilyBooks: FamilyBook[] = [

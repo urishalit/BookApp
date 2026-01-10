@@ -94,7 +94,7 @@ export function useBooksListener() {
           author: book.author,
           thumbnailUrl: book.thumbnailUrl,
           googleBooksId: book.googleBooksId,
-          genreId: book.genreId,
+          genres: book.genres,
           seriesId: book.seriesId,
           seriesOrder: book.seriesOrder,
         } as MemberBook;
@@ -150,7 +150,7 @@ interface AddBookData {
   status?: BookStatus;
   thumbnailUrl?: string;
   googleBooksId?: string;
-  genreId?: string;
+  genres?: string[];
   seriesId?: string;
   seriesOrder?: number;
 }
@@ -180,7 +180,7 @@ export function useBookOperations() {
         author: data.author,
         thumbnailUrl: data.thumbnailUrl,
         googleBooksId: data.googleBooksId,
-        genreId: data.genreId,
+        genres: data.genres,
         seriesId: data.seriesId,
         seriesOrder: data.seriesOrder,
         addedBy: selectedMemberId,
