@@ -1,5 +1,5 @@
 import { groupBooksBySeries, getBookListItemKey, BookListItem } from '../../lib/book-list-utils';
-import type { Book } from '../../types/models';
+import type { MemberBook } from '../../types/models';
 import type { SeriesWithProgress } from '../../hooks/use-series';
 
 describe('book-list-utils', () => {
@@ -10,8 +10,8 @@ describe('book-list-utils', () => {
     toMillis: () => millis,
   });
 
-  const createBook = (overrides: Partial<Book> & { id: string }): Book => ({
-    memberId: 'member-1',
+  const createBook = (overrides: Partial<MemberBook> & { id: string }): MemberBook => ({
+    libraryEntryId: `entry-${overrides.id}`,
     title: 'Test Book',
     author: 'Test Author',
     status: 'to-read',
@@ -24,10 +24,9 @@ describe('book-list-utils', () => {
     id: string,
     name: string,
     totalBooks: number,
-    booksInSeries: Book[] = []
+    booksInSeries: MemberBook[] = []
   ): SeriesWithProgress => ({
     id,
-    memberId: 'member-1',
     name,
     totalBooks,
     booksInSeries,
@@ -36,17 +35,18 @@ describe('book-list-utils', () => {
     progressPercent: totalBooks > 0 
       ? Math.round((booksInSeries.filter((b) => b.status === 'read').length / totalBooks) * 100)
       : 0,
+    isInLibrary: booksInSeries.length > 0,
   });
 
   // Books for Harry Potter series
-  const hpBooks: Book[] = [
+  const hpBooks: MemberBook[] = [
     createBook({ id: 'hp-1', title: 'HP Book 1', seriesId: 'series-hp', seriesOrder: 1, status: 'read' }),
     createBook({ id: 'hp-2', title: 'HP Book 2', seriesId: 'series-hp', seriesOrder: 2, status: 'read' }),
     createBook({ id: 'hp-3', title: 'HP Book 3', seriesId: 'series-hp', seriesOrder: 3, status: 'reading' }),
   ];
 
   // Books for LOTR series
-  const lotrBooks: Book[] = [
+  const lotrBooks: MemberBook[] = [
     createBook({ id: 'lotr-1', title: 'LOTR Book 1', seriesId: 'series-lotr', seriesOrder: 1, status: 'read' }),
   ];
 
@@ -62,7 +62,7 @@ describe('book-list-utils', () => {
     });
 
     it('should return standalone books as individual items when no series', () => {
-      const books: Book[] = [
+      const books: MemberBook[] = [
         createBook({ id: 'book-1', title: 'Standalone Book 1' }),
         createBook({ id: 'book-2', title: 'Standalone Book 2' }),
       ];
@@ -75,7 +75,7 @@ describe('book-list-utils', () => {
 
     it('should group books with same seriesId into a single series item', () => {
       // Pass only one filtered book, but series should include all books
-      const filteredBooks: Book[] = [
+      const filteredBooks: MemberBook[] = [
         createBook({ id: 'hp-3', title: 'HP Book 3', seriesId: 'series-hp', seriesOrder: 3, status: 'reading' }),
       ];
 
@@ -107,7 +107,7 @@ describe('book-list-utils', () => {
     });
 
     it('should separate different series into different items', () => {
-      const books: Book[] = [
+      const books: MemberBook[] = [
         createBook({ id: 'hp-1', title: 'HP Book 1', seriesId: 'series-hp' }),
         createBook({ id: 'lotr-1', title: 'LOTR Book 1', seriesId: 'series-lotr' }),
       ];
@@ -119,7 +119,7 @@ describe('book-list-utils', () => {
     });
 
     it('should mix series and standalone books correctly', () => {
-      const books: Book[] = [
+      const books: MemberBook[] = [
         createBook({ id: 'hp-1', title: 'HP Book 1', seriesId: 'series-hp' }),
         createBook({ id: 'standalone', title: 'Standalone Book' }),
       ];
@@ -134,7 +134,7 @@ describe('book-list-utils', () => {
     });
 
     it('should fall back to individual books when series metadata not found', () => {
-      const books: Book[] = [
+      const books: MemberBook[] = [
         createBook({ id: 'book-1', title: 'Unknown Series Book 1', seriesId: 'series-unknown' }),
         createBook({ id: 'book-2', title: 'Unknown Series Book 2', seriesId: 'series-unknown' }),
       ];
@@ -147,7 +147,7 @@ describe('book-list-utils', () => {
     });
 
     it('should sort series before standalone books', () => {
-      const books: Book[] = [
+      const books: MemberBook[] = [
         createBook({ id: 'standalone', title: 'Standalone First', addedAt: createMockTimestamp(3000) as any }),
         createBook({ id: 'hp-1', title: 'HP Book', seriesId: 'series-hp', addedAt: createMockTimestamp(1000) as any }),
       ];
@@ -159,7 +159,7 @@ describe('book-list-utils', () => {
     });
 
     it('should sort series alphabetically by name', () => {
-      const books: Book[] = [
+      const books: MemberBook[] = [
         createBook({ id: 'lotr-1', seriesId: 'series-lotr' }), // Lord of the Rings
         createBook({ id: 'hp-1', seriesId: 'series-hp' }), // Harry Potter
       ];
@@ -177,7 +177,7 @@ describe('book-list-utils', () => {
     });
 
     it('should sort standalone books by addedAt descending (newest first)', () => {
-      const books: Book[] = [
+      const books: MemberBook[] = [
         createBook({ id: 'book-1', title: 'Oldest', addedAt: createMockTimestamp(1000) as any }),
         createBook({ id: 'book-2', title: 'Middle', addedAt: createMockTimestamp(2000) as any }),
         createBook({ id: 'book-3', title: 'Newest', addedAt: createMockTimestamp(3000) as any }),
@@ -197,7 +197,7 @@ describe('book-list-utils', () => {
     });
 
     it('should handle books without addedAt.toMillis gracefully', () => {
-      const books: Book[] = [
+      const books: MemberBook[] = [
         createBook({ id: 'book-1', title: 'No toMillis', addedAt: { seconds: 1, nanoseconds: 0 } as any }),
         createBook({ id: 'book-2', title: 'With toMillis', addedAt: createMockTimestamp(2000) as any }),
       ];
@@ -211,7 +211,7 @@ describe('book-list-utils', () => {
 
     it('should show series when any book in series matches filter', () => {
       // Only the "reading" book matches the filter
-      const filteredBooks: Book[] = [hpBooks[2]]; // HP Book 3 (reading)
+      const filteredBooks: MemberBook[] = [hpBooks[2]]; // HP Book 3 (reading)
 
       const result = groupBooksBySeries(filteredBooks, mockSeriesWithProgress);
 

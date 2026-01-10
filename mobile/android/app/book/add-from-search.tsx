@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   View,
   StyleSheet,
@@ -65,8 +65,8 @@ export default function AddFromSearchScreen() {
         status,
         googleBooksId: params.googleBooksId,
         thumbnailUrl: params.thumbnailUrl || undefined,
-        ...(seriesId && { seriesId }),
-        ...(seriesOrder && { seriesOrder }),
+        seriesId,
+        seriesOrder,
       });
 
       // Go back to search screen and then to books
@@ -413,4 +413,3 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
 });
-

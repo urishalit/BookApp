@@ -1,10 +1,10 @@
-import type { Book, Series } from '@/types/models';
+import type { MemberBook, Series } from '@/types/models';
 import type { SeriesWithProgress } from '@/hooks/use-series';
 
 /** Union type for list items: either a standalone book or a collapsed series */
 export type BookListItem =
-  | { type: 'book'; book: Book }
-  | { type: 'series'; series: Series; books: Book[] };
+  | { type: 'book'; book: MemberBook }
+  | { type: 'series'; series: Series; books: MemberBook[] };
 
 /**
  * Groups books by series and creates a combined list of items.
@@ -17,12 +17,12 @@ export type BookListItem =
  *          then standalone books (by addedAt descending)
  */
 export function groupBooksBySeries(
-  filteredBooks: Book[],
+  filteredBooks: MemberBook[],
   seriesWithProgress: SeriesWithProgress[]
 ): BookListItem[] {
   const items: BookListItem[] = [];
   const seriesIdsWithMatchingBooks = new Set<string>();
-  const standaloneBooks: Book[] = [];
+  const standaloneBooks: MemberBook[] = [];
 
   // Separate books into series groups and standalone
   for (const book of filteredBooks) {

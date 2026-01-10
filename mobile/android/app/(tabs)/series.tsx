@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   View,
   FlatList,
@@ -19,9 +19,10 @@ import { useThemeColor } from '@/hooks/use-theme-color';
 
 export default function SeriesScreen() {
   const router = useRouter();
-  const { selectedMember, selectedMemberId } = useFamily();
+  const { family, selectedMember, selectedMemberId } = useFamily();
   const { series, isLoading, error, totalSeries } = useSeries();
-  const { removeSeries } = useSeriesOperations();
+  const { removeSeries, addSeriesToLibrary } = useSeriesOperations();
+  const [addingSeriesId, setAddingSeriesId] = useState<string | null>(null);
 
   const primaryColor = useThemeColor({ light: '#8B5A2B', dark: '#D4A574' }, 'text');
   const cardBg = useThemeColor({ light: '#FFFFFF', dark: '#1A2129' }, 'background');
@@ -68,29 +69,70 @@ export default function SeriesScreen() {
     router.push('/(tabs)/family');
   }, [router]);
 
+  const handleAddToLibrary = useCallback(
+    async (item: SeriesWithProgress) => {
+      if (!selectedMemberId) {
+        Alert.alert(
+          'Select Member',
+          'Please select a family member first to add series to their library.',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Go to Family', onPress: () => router.push('/(tabs)/family') },
+          ]
+        );
+        return;
+      }
+
+      setAddingSeriesId(item.id);
+      try {
+        const result = await addSeriesToLibrary(item.id);
+        if (result.added > 0) {
+          Alert.alert(
+            'Added to Library',
+            `Added ${result.added} book${result.added === 1 ? '' : 's'} to ${selectedMember?.name}'s library.${
+              result.skipped > 0 ? ` (${result.skipped} already in library)` : ''
+            }`
+          );
+        } else if (result.skipped > 0) {
+          Alert.alert('Already in Library', 'All books from this series are already in your library.');
+        } else {
+          Alert.alert('No Books', 'This series has no books yet. Add books to the series first.');
+        }
+      } catch (err) {
+        console.error('Failed to add series to library:', err);
+        Alert.alert('Error', 'Failed to add series to library. Please try again.');
+      } finally {
+        setAddingSeriesId(null);
+      }
+    },
+    [selectedMemberId, selectedMember, addSeriesToLibrary, router]
+  );
+
   const renderSeries = useCallback(
     ({ item }: { item: SeriesWithProgress }) => (
       <SeriesCard
         series={item}
         onPress={() => handleSeriesPress(item)}
         onLongPress={() => handleDeleteSeries(item)}
+        onAddToLibrary={() => handleAddToLibrary(item)}
+        showAddButton={!!selectedMemberId}
       />
     ),
-    [handleSeriesPress, handleDeleteSeries]
+    [handleSeriesPress, handleDeleteSeries, handleAddToLibrary, selectedMemberId]
   );
 
   const renderEmptyState = () => {
-    if (!selectedMemberId) {
+    if (!family) {
       return (
         <View style={styles.emptyContainer}>
           <View style={[styles.emptyIcon, { backgroundColor: cardBg }]}>
-            <IconSymbol name="person.3.fill" size={64} color={primaryColor} />
+            <IconSymbol name="house.fill" size={64} color={primaryColor} />
           </View>
           <ThemedText type="title" style={styles.emptyTitle}>
-            Select a Family Member
+            Set Up Your Family
           </ThemedText>
           <ThemedText style={styles.emptyText}>
-            Choose a family member from the Family tab to view and manage their book series.
+            Create your family to start tracking book series.
           </ThemedText>
           <Pressable
             style={[styles.emptyButton, { backgroundColor: primaryColor }]}
@@ -112,6 +154,7 @@ export default function SeriesScreen() {
         </ThemedText>
         <ThemedText style={styles.emptyText}>
           Create a series to track your progress through multi-book adventures!
+          {!selectedMemberId && '\n\nSelect a member to see their progress.'}
         </ThemedText>
         <Pressable
           style={[styles.emptyButton, { backgroundColor: primaryColor }]}
@@ -124,7 +167,7 @@ export default function SeriesScreen() {
     );
   };
 
-  if (isLoading && series.length === 0 && selectedMemberId) {
+  if (isLoading && series.length === 0 && family) {
     return (
       <ThemedView style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={primaryColor} />
@@ -164,7 +207,7 @@ export default function SeriesScreen() {
             </Pressable>
           )}
         </View>
-        {selectedMemberId && (
+        {family && (
           <Pressable
             style={[styles.addButton, { backgroundColor: primaryColor }]}
             onPress={handleAddSeries}
@@ -175,7 +218,7 @@ export default function SeriesScreen() {
       </View>
 
       {/* Stats Bar */}
-      {selectedMemberId && totalSeries > 0 && (
+      {family && totalSeries > 0 && (
         <View style={styles.statsBar}>
           <ThemedText style={styles.statsText}>
             {totalSeries} {totalSeries === 1 ? 'series' : 'series'} •{' '}

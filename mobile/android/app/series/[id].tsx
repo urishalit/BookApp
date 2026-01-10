@@ -2,7 +2,6 @@ import React, { useCallback, useState } from 'react';
 import {
   View,
   StyleSheet,
-  ScrollView,
   Pressable,
   Alert,
   ActivityIndicator,
@@ -16,16 +15,16 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import { BookCard } from '@/components/book-card';
 import { SeriesProgress } from '@/components/series-progress';
 import { useSeriesDetail, useSeriesOperations } from '@/hooks/use-series';
-import { useBookOperations } from '@/hooks/use-books';
+import { useBookOperations, getNextStatus } from '@/hooks/use-books';
 import { useThemeColor } from '@/hooks/use-theme-color';
-import type { Book, BookStatus } from '@/types/models';
+import type { SeriesBookDisplay } from '@/types/models';
 
 export default function SeriesDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { series, books, isLoading } = useSeriesDetail(id);
   const { editSeries, removeSeries } = useSeriesOperations();
-  const { updateBookStatus } = useBookOperations();
+  const { addOrUpdateBookStatus } = useBookOperations();
 
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState('');
@@ -40,38 +39,55 @@ export default function SeriesDetailScreen() {
   const textColor = useThemeColor({}, 'text');
 
   const handleBookPress = useCallback(
-    (book: Book) => {
-      router.push({
-        pathname: '/book/[id]',
-        params: { id: book.id },
-      });
+    (book: SeriesBookDisplay) => {
+      // Only navigate to book detail if the book is in the member's library
+      if (book.isInLibrary && book.libraryEntryId) {
+        router.push({
+          pathname: '/book/[id]',
+          params: { id: book.id },
+        });
+      } else {
+        // Book not in library - prompt to add it
+        Alert.alert(
+          'Add to Library',
+          `"${book.title}" is not in your library yet. Add it to view details and track your reading progress.`,
+          [
+            { text: 'Cancel', style: 'cancel' },
+            {
+              text: 'Add to Library',
+              onPress: async () => {
+                try {
+                  await addOrUpdateBookStatus(book.id, 'to-read', undefined);
+                  // After adding, navigate to the book detail
+                  router.push({
+                    pathname: '/book/[id]',
+                    params: { id: book.id },
+                  });
+                } catch (err) {
+                  Alert.alert('Error', 'Failed to add book to library');
+                }
+              },
+            },
+          ]
+        );
+      }
     },
-    [router]
+    [router, addOrUpdateBookStatus]
   );
 
   const handleStatusChange = useCallback(
-    async (book: Book) => {
-      const statusOptions: BookStatus[] = ['reading', 'to-read', 'read'];
-      
-      Alert.alert(
-        'Change Status',
-        `Update "${book.title}" status to:`,
-        [
-          { text: 'Cancel', style: 'cancel' },
-          ...statusOptions.map((status) => ({
-            text: status === 'reading' ? 'Reading' : status === 'to-read' ? 'To Read' : 'Read',
-            onPress: async () => {
-              try {
-                await updateBookStatus(book.id, status);
-              } catch (err) {
-                Alert.alert('Error', 'Failed to update book status');
-              }
-            },
-          })),
-        ]
-      );
+    async (book: SeriesBookDisplay) => {
+      const nextStatus = getNextStatus(book.status);
+      try {
+        // addOrUpdateBookStatus handles both cases:
+        // - If libraryEntryId exists, updates the status
+        // - If not, adds the book to library with the new status
+        await addOrUpdateBookStatus(book.id, nextStatus, book.libraryEntryId);
+      } catch (err) {
+        Alert.alert('Error', 'Failed to update book status');
+      }
     },
-    [updateBookStatus]
+    [addOrUpdateBookStatus]
   );
 
   const handleStartEdit = useCallback(() => {
@@ -160,7 +176,7 @@ export default function SeriesDetailScreen() {
     );
   }
 
-  const renderBook = ({ item }: { item: Book }) => (
+  const renderBook = ({ item }: { item: SeriesBookDisplay }) => (
     <BookCard
       book={item}
       onPress={() => handleBookPress(item)}

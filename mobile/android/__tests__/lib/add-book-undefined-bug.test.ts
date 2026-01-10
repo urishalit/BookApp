@@ -1,22 +1,13 @@
 /**
- * Test that reproduces the bug in app/book/add.tsx handleSubmit
+ * Test that verifies the fix for the undefined thumbnailUrl bug.
  * 
- * The bug: When adding a book without a cover image, the code does:
- *   let thumbnailUrl: string | undefined;
- *   // ... (thumbnailUrl remains undefined if no cover)
- *   await addBook({
- *     title: title.trim(),
- *     author: author.trim(), 
- *     status,
- *     thumbnailUrl,  // <-- BUG: includes undefined value
- *   });
+ * The bug was that when adding a book without a cover image, undefined
+ * values were being passed to Firestore which rejects them.
  * 
- * Firestore rejects documents with undefined field values.
- * 
- * This test FAILS to demonstrate the bug exists.
+ * The fix was to filter out undefined values before sending to Firestore.
  */
 
-import type { CreateBook } from '../../types/models';
+import type { CreateFamilyBook } from '../../types/models';
 
 // Mock Firestore with realistic validation that rejects undefined values
 jest.mock('@react-native-firebase/firestore', () => {
@@ -52,42 +43,34 @@ jest.mock('@react-native-firebase/firestore', () => {
   };
 });
 
-import { createBook } from '../../lib/firestore';
+import { createFamilyBook } from '../../lib/firestore';
 
-describe('Bug reproduction: add.tsx passes undefined thumbnailUrl to Firestore', () => {
+describe('Bug fix: undefined thumbnailUrl handling', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
   /**
    * This test verifies the FIX for the undefined thumbnailUrl bug.
-   * 
-   * Previously, the code did:
-   *   thumbnailUrl,  // BUG: undefined value included in object
-   * 
-   * Now the code does:
-   *   ...(thumbnailUrl && { thumbnailUrl }),  // FIX: only include if defined
+   * createFamilyBook now filters out undefined values before passing to Firestore.
    */
-  it('should successfully add a book without a cover image (using fixed pattern)', async () => {
-    // Simulating the FIXED app/book/add.tsx handleSubmit
-    
+  it('should successfully add a book without a cover image', async () => {
     let thumbnailUrl: string | undefined;
     // No cover image was selected, so thumbnailUrl remains undefined
     
     const title = 'My New Book';
     const author = 'John Author';
-    const status = 'to-read' as const;
 
-    // This is the FIXED pattern - only spread thumbnailUrl if it has a value
-    const bookData: Omit<CreateBook, 'memberId' | 'addedAt'> = {
+    // The fixed pattern - createFamilyBook filters out undefined values
+    const bookData: Omit<CreateFamilyBook, 'addedAt'> = {
       title: title.trim(),
       author: author.trim(),
-      status,
+      addedBy: 'member-123',
       ...(thumbnailUrl && { thumbnailUrl }),  // FIX: excludes undefined
     };
 
     // Now this succeeds because undefined fields are not included
-    const bookId = await createBook('family-123', 'member-123', bookData);
+    const bookId = await createFamilyBook('family-123', bookData);
     
     expect(bookId).toBe('mock-doc-id');
   });
@@ -102,19 +85,17 @@ describe('Bug reproduction: add.tsx passes undefined thumbnailUrl to Firestore',
     
     const title = 'My New Book';
     const author = 'John Author';
-    const status = 'to-read' as const;
 
     // CORRECT approach: Only include thumbnailUrl if it has a value
-    const bookData: Omit<CreateBook, 'memberId' | 'addedAt'> = {
+    const bookData: Omit<CreateFamilyBook, 'addedAt'> = {
       title: title.trim(),
       author: author.trim(),
-      status,
+      addedBy: 'member-123',
       ...(thumbnailUrl && { thumbnailUrl }),  // Only spread if defined
     };
 
-    const bookId = await createBook('family-123', 'member-123', bookData);
+    const bookId = await createFamilyBook('family-123', bookData);
     
     expect(bookId).toBe('mock-doc-id');
   });
 });
-

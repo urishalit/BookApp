@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   StyleSheet,
@@ -14,21 +14,20 @@ import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { SeriesPicker } from '@/components/series-picker';
 import { getAllStatuses, getStatusConfig } from '@/components/book-status-badge';
-import { useBookOperations } from '@/hooks/use-books';
+import { useBooks, useBookOperations } from '@/hooks/use-books';
 import { useSeries } from '@/hooks/use-series';
 import { useThemeColor } from '@/hooks/use-theme-color';
-import type { Book, BookStatus } from '@/types/models';
+import type { MemberBook, BookStatus } from '@/types/models';
 
 const PLACEHOLDER_COVER = 'https://via.placeholder.com/256x384/E5D4C0/8B5A2B?text=No+Cover';
 
 export default function BookDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const { fetchBook, updateBookStatus, editBook, removeBook } = useBookOperations();
+  const { allBooks, isLoading } = useBooks();
+  const { updateBookStatus, updateBookMetadata, removeBook } = useBookOperations();
   const { series } = useSeries();
 
-  const [book, setBook] = useState<Book | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
   const [isEditingSeries, setIsEditingSeries] = useState(false);
 
@@ -37,24 +36,8 @@ export default function BookDetailScreen() {
   const borderColor = useThemeColor({ light: '#E5D4C0', dark: '#2D3748' }, 'text');
   const subtitleColor = useThemeColor({ light: '#666666', dark: '#999999' }, 'text');
 
-  useEffect(() => {
-    if (!id) return;
-
-    async function loadBook() {
-      try {
-        setIsLoading(true);
-        const bookData = await fetchBook(id);
-        setBook(bookData);
-      } catch (error) {
-        console.error('Failed to load book:', error);
-        Alert.alert('Error', 'Failed to load book details');
-      } finally {
-        setIsLoading(false);
-      }
-    }
-
-    loadBook();
-  }, [id, fetchBook]);
+  // Find the book from the current member's library
+  const book = allBooks.find((b) => b.id === id) as MemberBook | undefined;
 
   const handleStatusChange = useCallback(
     async (newStatus: BookStatus) => {
@@ -62,8 +45,7 @@ export default function BookDetailScreen() {
 
       setIsUpdating(true);
       try {
-        await updateBookStatus(book.id, newStatus);
-        setBook((prev) => (prev ? { ...prev, status: newStatus } : null));
+        await updateBookStatus(book.libraryEntryId, newStatus);
       } catch (error) {
         console.error('Failed to update status:', error);
         Alert.alert('Error', 'Failed to update book status');
@@ -80,11 +62,11 @@ export default function BookDetailScreen() {
 
       setIsUpdating(true);
       try {
-        await editBook(book.id, { 
-          seriesId: seriesId || null as any, 
-          seriesOrder: seriesOrder || null as any 
+        // Update the family book's series info
+        await updateBookMetadata(book.id, { 
+          seriesId: seriesId || undefined, 
+          seriesOrder: seriesOrder || undefined
         });
-        setBook((prev) => (prev ? { ...prev, seriesId, seriesOrder } : null));
         setIsEditingSeries(false);
       } catch (error) {
         console.error('Failed to update series:', error);
@@ -93,27 +75,27 @@ export default function BookDetailScreen() {
         setIsUpdating(false);
       }
     },
-    [book, editBook]
+    [book, updateBookMetadata]
   );
 
   const handleDelete = useCallback(() => {
     if (!book) return;
 
     Alert.alert(
-      'Delete Book',
-      `Are you sure you want to delete "${book.title}"?`,
+      'Remove from Library',
+      `Are you sure you want to remove "${book.title}" from your library?`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
-          text: 'Delete',
+          text: 'Remove',
           style: 'destructive',
           onPress: async () => {
             try {
-              await removeBook(book.id);
+              await removeBook(book.libraryEntryId);
               router.back();
             } catch (error) {
-              console.error('Failed to delete book:', error);
-              Alert.alert('Error', 'Failed to delete book');
+              console.error('Failed to remove book:', error);
+              Alert.alert('Error', 'Failed to remove book from library');
             }
           },
         },
@@ -271,7 +253,7 @@ export default function BookDetailScreen() {
           onPress={handleDelete}
         >
           <IconSymbol name="trash" size={20} color="#E57373" />
-          <ThemedText style={styles.deleteButtonText}>Delete Book</ThemedText>
+          <ThemedText style={styles.deleteButtonText}>Remove from Library</ThemedText>
         </Pressable>
       </ScrollView>
     </ThemedView>
@@ -434,4 +416,3 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
 });
-

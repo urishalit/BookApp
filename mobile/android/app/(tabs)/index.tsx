@@ -14,12 +14,12 @@ import { BookCard } from '@/components/book-card';
 import { SeriesRow } from '@/components/series-row';
 import { MemberAvatar } from '@/components/member-avatar';
 import { IconSymbol } from '@/components/ui/icon-symbol';
-import { useBooks, useBookOperations } from '@/hooks/use-books';
+import { useBooks, useBookOperations, getNextStatus } from '@/hooks/use-books';
 import { useSeries } from '@/hooks/use-series';
 import { useFamily } from '@/hooks/use-family';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { groupBooksBySeries, getBookListItemKey, type BookListItem } from '@/lib/book-list-utils';
-import type { Book, BookStatus, Series } from '@/types/models';
+import type { MemberBook, BookStatus, Series } from '@/types/models';
 
 type FilterTab = 'all' | BookStatus;
 
@@ -57,7 +57,7 @@ export default function BooksScreen() {
   );
 
   const handleBookPress = useCallback(
-    (book: Book) => {
+    (book: MemberBook) => {
       router.push({
         pathname: '/book/[id]',
         params: { id: book.id },
@@ -77,47 +77,32 @@ export default function BooksScreen() {
   );
 
   const handleStatusPress = useCallback(
-    (book: Book) => {
-      const statusOptions: BookStatus[] = ['reading', 'to-read', 'read'];
-      const currentIndex = statusOptions.indexOf(book.status);
-      const nextStatus = statusOptions[(currentIndex + 1) % statusOptions.length];
-      
-      Alert.alert(
-        'Change Status',
-        `Update "${book.title}" status to:`,
-        [
-          { text: 'Cancel', style: 'cancel' },
-          ...statusOptions.map((status) => ({
-            text: status === 'reading' ? 'Reading' : status === 'to-read' ? 'To Read' : 'Read',
-            onPress: async () => {
-              try {
-                await updateBookStatus(book.id, status);
-              } catch (err) {
-                Alert.alert('Error', 'Failed to update book status');
-              }
-            },
-          })),
-        ]
-      );
+    async (book: MemberBook) => {
+      const nextStatus = getNextStatus(book.status);
+      try {
+        await updateBookStatus(book.libraryEntryId, nextStatus);
+      } catch (err) {
+        Alert.alert('Error', 'Failed to update book status');
+      }
     },
     [updateBookStatus]
   );
 
   const handleDeleteBook = useCallback(
-    (book: Book) => {
+    (book: MemberBook) => {
       Alert.alert(
-        'Delete Book',
-        `Are you sure you want to delete "${book.title}"?`,
+        'Remove Book',
+        `Are you sure you want to remove "${book.title}" from your library?`,
         [
           { text: 'Cancel', style: 'cancel' },
           {
-            text: 'Delete',
+            text: 'Remove',
             style: 'destructive',
             onPress: async () => {
               try {
-                await removeBook(book.id);
+                await removeBook(book.libraryEntryId);
               } catch (err) {
-                Alert.alert('Error', 'Failed to delete book');
+                Alert.alert('Error', 'Failed to remove book');
               }
             },
           },

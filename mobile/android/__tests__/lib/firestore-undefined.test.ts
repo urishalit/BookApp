@@ -1,11 +1,11 @@
 /**
- * Test to verify that createBook properly handles undefined field values.
+ * Test to verify that createFamilyBook properly handles undefined field values.
  * 
- * Firestore rejects undefined values, so createBook filters them out
+ * Firestore rejects undefined values, so createFamilyBook filters them out
  * before sending data to Firestore.
  */
 
-import type { CreateBook } from '../../types/models';
+import type { CreateFamilyBook } from '../../types/models';
 
 // Mock Firestore with realistic validation that rejects undefined values
 jest.mock('@react-native-firebase/firestore', () => {
@@ -60,7 +60,7 @@ jest.mock('@react-native-firebase/firestore', () => {
 });
 
 // Import after mocking
-import { createBook } from '../../lib/firestore';
+import { createFamilyBook } from '../../lib/firestore';
 
 describe('Firestore undefined field value handling', () => {
   beforeEach(() => {
@@ -68,43 +68,42 @@ describe('Firestore undefined field value handling', () => {
   });
 
   it('should succeed even when thumbnailUrl is explicitly undefined (filters it out)', async () => {
-    // createBook now filters out undefined values before sending to Firestore
+    // createFamilyBook now filters out undefined values before sending to Firestore
     // This ensures we never get "Unsupported field value: undefined" errors
     
-    const bookDataWithUndefined: Omit<CreateBook, 'memberId' | 'addedAt'> = {
+    const bookDataWithUndefined: Omit<CreateFamilyBook, 'addedAt'> = {
       title: 'Test Book',
       author: 'Test Author',
-      status: 'to-read',
-      thumbnailUrl: undefined,  // This will be filtered out by createBook
+      addedBy: 'member-123',
+      thumbnailUrl: undefined,  // This will be filtered out by createFamilyBook
     };
 
-    // Should succeed because createBook filters out undefined values
-    const bookId = await createBook('family-123', 'member-123', bookDataWithUndefined);
+    // Should succeed because createFamilyBook filters out undefined values
+    const bookId = await createFamilyBook('family-123', bookDataWithUndefined);
     expect(bookId).toBe('mock-doc-id');
   });
 
   it('should succeed when thumbnailUrl is not included at all', async () => {
-    const bookDataWithoutThumbnail: Omit<CreateBook, 'memberId' | 'addedAt'> = {
+    const bookDataWithoutThumbnail: Omit<CreateFamilyBook, 'addedAt'> = {
       title: 'Test Book',
       author: 'Test Author',
-      status: 'to-read',
+      addedBy: 'member-123',
       // thumbnailUrl is NOT included at all
     };
 
-    const bookId = await createBook('family-123', 'member-123', bookDataWithoutThumbnail);
+    const bookId = await createFamilyBook('family-123', bookDataWithoutThumbnail);
     expect(bookId).toBe('mock-doc-id');
   });
 
   it('should succeed when thumbnailUrl has an actual value', async () => {
-    const bookDataWithThumbnail: Omit<CreateBook, 'memberId' | 'addedAt'> = {
+    const bookDataWithThumbnail: Omit<CreateFamilyBook, 'addedAt'> = {
       title: 'Test Book',
       author: 'Test Author',
-      status: 'to-read',
+      addedBy: 'member-123',
       thumbnailUrl: 'https://example.com/cover.jpg',  // Has a real value
     };
 
-    const bookId = await createBook('family-123', 'member-123', bookDataWithThumbnail);
+    const bookId = await createFamilyBook('family-123', bookDataWithThumbnail);
     expect(bookId).toBe('mock-doc-id');
   });
 });
-

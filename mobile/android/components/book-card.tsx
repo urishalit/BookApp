@@ -4,10 +4,10 @@ import { Image } from 'expo-image';
 import { ThemedText } from '@/components/themed-text';
 import { BookStatusBadge } from '@/components/book-status-badge';
 import { useThemeColor } from '@/hooks/use-theme-color';
-import type { Book } from '@/types/models';
+import type { MemberBook, SeriesBookDisplay } from '@/types/models';
 
 interface BookCardProps {
-  book: Book;
+  book: MemberBook | SeriesBookDisplay;
   seriesName?: string;
   onPress?: () => void;
   onLongPress?: () => void;

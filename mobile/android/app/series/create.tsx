@@ -20,7 +20,7 @@ import { useThemeColor } from '@/hooks/use-theme-color';
 
 export default function CreateSeriesScreen() {
   const router = useRouter();
-  const { selectedMember } = useFamily();
+  const { family } = useFamily();
   const { addSeries } = useSeriesOperations();
 
   const [name, setName] = useState('');
@@ -67,13 +67,13 @@ export default function CreateSeriesScreen() {
 
   const canSubmit = name.trim().length > 0 && parseInt(totalBooks, 10) >= 1 && !isSubmitting;
 
-  if (!selectedMember) {
+  if (!family) {
     return (
       <ThemedView style={styles.container}>
         <View style={styles.emptyContainer}>
-          <IconSymbol name="person.fill.questionmark" size={64} color={primaryColor} />
+          <IconSymbol name="house.fill" size={64} color={primaryColor} />
           <ThemedText style={styles.emptyText}>
-            Please select a family member first.
+            Please set up your family first.
           </ThemedText>
           <Pressable
             style={[styles.button, { backgroundColor: primaryColor }]}
@@ -164,11 +164,10 @@ export default function CreateSeriesScreen() {
             </ThemedText>
           </View>
 
-          {/* Member Note */}
+          {/* Shared Series Note */}
           <View style={[styles.memberNote, { backgroundColor: inputBg }]}>
             <ThemedText style={styles.memberNoteText}>
-              Creating series for:{' '}
-              <ThemedText style={{ fontWeight: '600' }}>{selectedMember.name}</ThemedText>
+              Series are shared across all family members.
             </ThemedText>
           </View>
         </ScrollView>

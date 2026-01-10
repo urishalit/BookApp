@@ -4,11 +4,11 @@ import { Image } from 'expo-image';
 import { ThemedText } from '@/components/themed-text';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useThemeColor } from '@/hooks/use-theme-color';
-import type { Book, Series } from '@/types/models';
+import type { MemberBook, Series } from '@/types/models';
 
 interface SeriesRowProps {
   series: Series;
-  booksInSeries: Book[];
+  booksInSeries: MemberBook[];
   onPress?: () => void;
   onLongPress?: () => void;
 }

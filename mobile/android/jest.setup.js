@@ -67,6 +67,18 @@ jest.mock('@react-native-google-signin/google-signin', () => ({
 
 // Mock Firebase Firestore
 jest.mock('@react-native-firebase/firestore', () => {
+  // Create a chainable query mock
+  const createQueryMock = () => {
+    const mock = {
+      get: jest.fn(() => Promise.resolve({ docs: [], empty: true })),
+      where: jest.fn(() => createQueryMock()),
+      orderBy: jest.fn(() => createQueryMock()),
+      limit: jest.fn(() => createQueryMock()),
+      onSnapshot: jest.fn(() => jest.fn()),
+    };
+    return mock;
+  };
+
   const mockCollection = jest.fn(() => ({
     add: jest.fn(() => Promise.resolve({ id: 'mock-doc-id' })),
     doc: jest.fn(() => ({
@@ -77,19 +89,8 @@ jest.mock('@react-native-firebase/firestore', () => {
       collection: mockCollection,
     })),
     get: jest.fn(() => Promise.resolve({ docs: [], empty: true })),
-    where: jest.fn(() => ({
-      get: jest.fn(() => Promise.resolve({ docs: [], empty: true })),
-      limit: jest.fn(() => ({
-        get: jest.fn(() => Promise.resolve({ docs: [], empty: true })),
-      })),
-      orderBy: jest.fn(() => ({
-        get: jest.fn(() => Promise.resolve({ docs: [], empty: true })),
-      })),
-    })),
-    orderBy: jest.fn(() => ({
-      get: jest.fn(() => Promise.resolve({ docs: [], empty: true })),
-      onSnapshot: jest.fn(() => jest.fn()),
-    })),
+    where: jest.fn(() => createQueryMock()),
+    orderBy: jest.fn(() => createQueryMock()),
     onSnapshot: jest.fn(() => jest.fn()),
   }));
 

@@ -8,20 +8,19 @@
  * These tests focus on verifying the component's data processing logic.
  */
 
-import type { Book, Series } from '../../types/models';
+import type { MemberBook, Series } from '../../types/models';
 
 describe('SeriesRow Component Logic', () => {
   const mockSeries: Series = {
     id: 'series-1',
-    memberId: 'member-1',
     name: 'Harry Potter',
     totalBooks: 7,
   };
 
-  const mockBooksInSeries: Book[] = [
+  const mockBooksInSeries: MemberBook[] = [
     {
       id: 'book-1',
-      memberId: 'member-1',
+      libraryEntryId: 'entry-1',
       title: "Harry Potter and the Philosopher's Stone",
       author: 'J.K. Rowling',
       status: 'read',
@@ -32,7 +31,7 @@ describe('SeriesRow Component Logic', () => {
     },
     {
       id: 'book-2',
-      memberId: 'member-1',
+      libraryEntryId: 'entry-2',
       title: 'Harry Potter and the Chamber of Secrets',
       author: 'J.K. Rowling',
       status: 'read',
@@ -42,7 +41,7 @@ describe('SeriesRow Component Logic', () => {
     },
     {
       id: 'book-3',
-      memberId: 'member-1',
+      libraryEntryId: 'entry-3',
       title: 'Harry Potter and the Prisoner of Azkaban',
       author: 'J.K. Rowling',
       status: 'reading',
@@ -55,21 +54,21 @@ describe('SeriesRow Component Logic', () => {
   /**
    * Helper function to compute booksRead (same logic as SeriesRow component)
    */
-  function computeBooksRead(books: Book[]): number {
+  function computeBooksRead(books: MemberBook[]): number {
     return books.filter((b) => b.status === 'read').length;
   }
 
   /**
    * Helper function to find currently reading book (same logic as SeriesRow component)
    */
-  function findCurrentlyReading(books: Book[]): Book | undefined {
+  function findCurrentlyReading(books: MemberBook[]): MemberBook | undefined {
     return books.find((b) => b.status === 'reading');
   }
 
   /**
    * Helper function to generate currently reading display text
    */
-  function generateReadingDisplayText(book: Book): string {
+  function generateReadingDisplayText(book: MemberBook): string {
     const prefix = book.seriesOrder ? `#${book.seriesOrder} - ` : '';
     return `${prefix}${book.title}`;
   }
@@ -77,7 +76,7 @@ describe('SeriesRow Component Logic', () => {
   /**
    * Helper function to get sorted books by series order (same logic as SeriesRow component)
    */
-  function sortBooksByOrder(books: Book[]): Book[] {
+  function sortBooksByOrder(books: MemberBook[]): MemberBook[] {
     return [...books].sort((a, b) => {
       const orderA = a.seriesOrder ?? Infinity;
       const orderB = b.seriesOrder ?? Infinity;
@@ -97,25 +96,25 @@ describe('SeriesRow Component Logic', () => {
     });
 
     it('should return 0 when no books are read', () => {
-      const unreadBooks: Book[] = mockBooksInSeries.map((b) => ({
+      const unreadBooks: MemberBook[] = mockBooksInSeries.map((b) => ({
         ...b,
-        status: 'to-read',
+        status: 'to-read' as const,
       }));
       const booksRead = computeBooksRead(unreadBooks);
       expect(booksRead).toBe(0);
     });
 
     it('should count all books when all are read', () => {
-      const allReadBooks: Book[] = mockBooksInSeries.map((b) => ({
+      const allReadBooks: MemberBook[] = mockBooksInSeries.map((b) => ({
         ...b,
-        status: 'read',
+        status: 'read' as const,
       }));
       const booksRead = computeBooksRead(allReadBooks);
       expect(booksRead).toBe(3);
     });
 
     it('should only count "read" status, not "reading"', () => {
-      const mixedBooks: Book[] = [
+      const mixedBooks: MemberBook[] = [
         { ...mockBooksInSeries[0], status: 'read' },
         { ...mockBooksInSeries[1], status: 'reading' },
         { ...mockBooksInSeries[2], status: 'to-read' },
@@ -134,9 +133,9 @@ describe('SeriesRow Component Logic', () => {
     });
 
     it('should return undefined when no book is being read', () => {
-      const noReadingBooks: Book[] = mockBooksInSeries.map((b) => ({
+      const noReadingBooks: MemberBook[] = mockBooksInSeries.map((b) => ({
         ...b,
-        status: 'read',
+        status: 'read' as const,
       }));
       const reading = findCurrentlyReading(noReadingBooks);
       expect(reading).toBeUndefined();
@@ -148,7 +147,7 @@ describe('SeriesRow Component Logic', () => {
     });
 
     it('should return first reading book when multiple are reading', () => {
-      const multipleReadingBooks: Book[] = [
+      const multipleReadingBooks: MemberBook[] = [
         { ...mockBooksInSeries[0], status: 'reading' },
         { ...mockBooksInSeries[1], status: 'reading' },
         { ...mockBooksInSeries[2], status: 'read' },
@@ -166,7 +165,7 @@ describe('SeriesRow Component Logic', () => {
     });
 
     it('should show only title when no series order', () => {
-      const bookWithoutOrder: Book = {
+      const bookWithoutOrder: MemberBook = {
         ...mockBooksInSeries[0],
         seriesOrder: undefined,
       };
@@ -183,7 +182,7 @@ describe('SeriesRow Component Logic', () => {
 
   describe('book ordering', () => {
     it('should sort books by seriesOrder ascending', () => {
-      const unorderedBooks: Book[] = [
+      const unorderedBooks: MemberBook[] = [
         { ...mockBooksInSeries[2], seriesOrder: 3 },
         { ...mockBooksInSeries[0], seriesOrder: 1 },
         { ...mockBooksInSeries[1], seriesOrder: 2 },
@@ -197,7 +196,7 @@ describe('SeriesRow Component Logic', () => {
     });
 
     it('should place books without seriesOrder at the end', () => {
-      const mixedBooks: Book[] = [
+      const mixedBooks: MemberBook[] = [
         { ...mockBooksInSeries[0], seriesOrder: undefined },
         { ...mockBooksInSeries[1], seriesOrder: 1 },
         { ...mockBooksInSeries[2], seriesOrder: 2 },
@@ -270,7 +269,7 @@ describe('SeriesRow Component Logic', () => {
     });
 
     it('should detect empty array', () => {
-      const emptyBooks: Book[] = [];
+      const emptyBooks: MemberBook[] = [];
       const hasMultiple = emptyBooks.length > 1;
       expect(hasMultiple).toBe(false);
     });

@@ -120,9 +120,9 @@ export default function AddBookScreen() {
         title: title.trim(),
         author: author.trim(),
         status,
-        ...(thumbnailUrl && { thumbnailUrl }),
-        ...(seriesId && { seriesId }),
-        ...(seriesOrder && { seriesOrder }),
+        thumbnailUrl,
+        seriesId,
+        seriesOrder,
       });
 
       router.back();
@@ -134,12 +134,6 @@ export default function AddBookScreen() {
       setIsSubmitting(false);
     }
   }, [title, author, status, coverUri, selectedMemberId, seriesId, seriesOrder, addBook, router]);
-
-  const cycleStatus = useCallback(() => {
-    const statuses = getAllStatuses();
-    const currentIndex = statuses.indexOf(status);
-    setStatus(statuses[(currentIndex + 1) % statuses.length]);
-  }, [status]);
 
   if (!selectedMember) {
     return (
@@ -401,4 +395,3 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
 });
-

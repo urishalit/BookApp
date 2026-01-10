@@ -2,7 +2,7 @@ import { renderHook, act, waitFor } from '@testing-library/react-native';
 import { useSeries, useSeriesOperations, useSeriesDetail, SeriesWithProgress } from '@/hooks/use-series';
 import { useFamilyStore } from '@/stores/family-store';
 import * as firestore from '@/lib/firestore';
-import type { Series, Book, Family } from '@/types/models';
+import type { Series, MemberBook, MemberLibraryEntry, FamilyBook, Family } from '@/types/models';
 
 // Mock the firestore module
 jest.mock('@/lib/firestore', () => ({
@@ -11,7 +11,10 @@ jest.mock('@/lib/firestore', () => ({
   deleteSeries: jest.fn(),
   getSeriesById: jest.fn(),
   onSeriesSnapshot: jest.fn(),
-  onBooksSnapshot: jest.fn(),
+  onMemberLibrarySnapshot: jest.fn(),
+  onFamilyBooksSnapshot: jest.fn(),
+  getSeriesBooksFromCatalog: jest.fn(),
+  addSeriesToMemberLibrary: jest.fn(),
 }));
 
 // Mock the family store
@@ -27,14 +30,20 @@ const mockFamily: Family = {
 };
 
 const mockSeries: Series[] = [
-  { id: 'series-1', memberId: 'member-1', name: 'Harry Potter', totalBooks: 7 },
-  { id: 'series-2', memberId: 'member-1', name: 'Percy Jackson', totalBooks: 5, genreId: 'fantasy' },
+  { id: 'series-1', name: 'Harry Potter', totalBooks: 7 },
+  { id: 'series-2', name: 'Percy Jackson', totalBooks: 5, genreId: 'fantasy' },
 ];
 
-const mockBooks: Book[] = [
-  { id: 'book-1', memberId: 'member-1', title: 'Book 1', author: 'Author', status: 'read', seriesId: 'series-1', seriesOrder: 1, addedAt: {} as any },
-  { id: 'book-2', memberId: 'member-1', title: 'Book 2', author: 'Author', status: 'reading', seriesId: 'series-1', seriesOrder: 2, addedAt: {} as any },
-  { id: 'book-3', memberId: 'member-1', title: 'Book 3', author: 'Author', status: 'to-read', seriesId: 'series-1', seriesOrder: 3, addedAt: {} as any },
+const mockFamilyBooks: FamilyBook[] = [
+  { id: 'book-1', title: 'Book 1', author: 'Author', addedBy: 'member-1', seriesId: 'series-1', seriesOrder: 1, addedAt: {} as any },
+  { id: 'book-2', title: 'Book 2', author: 'Author', addedBy: 'member-1', seriesId: 'series-1', seriesOrder: 2, addedAt: {} as any },
+  { id: 'book-3', title: 'Book 3', author: 'Author', addedBy: 'member-1', seriesId: 'series-1', seriesOrder: 3, addedAt: {} as any },
+];
+
+const mockLibraryEntries: MemberLibraryEntry[] = [
+  { id: 'entry-1', bookId: 'book-1', status: 'read', addedAt: {} as any },
+  { id: 'entry-2', bookId: 'book-2', status: 'reading', addedAt: {} as any },
+  { id: 'entry-3', bookId: 'book-3', status: 'to-read', addedAt: {} as any },
 ];
 
 describe('use-series hooks', () => {
@@ -51,15 +60,21 @@ describe('use-series hooks', () => {
     });
 
     // Default mock implementation for onSeriesSnapshot
-    (firestore.onSeriesSnapshot as jest.Mock).mockImplementation((_familyId, _memberId, callback) => {
+    (firestore.onSeriesSnapshot as jest.Mock).mockImplementation((_familyId, callback) => {
       callback(mockSeries);
-      return jest.fn(); // unsubscribe function
+      return jest.fn();
     });
 
-    // Default mock implementation for onBooksSnapshot
-    (firestore.onBooksSnapshot as jest.Mock).mockImplementation((_familyId, _memberId, callback) => {
-      callback(mockBooks);
-      return jest.fn(); // unsubscribe function
+    // Default mock implementation for family books snapshot
+    (firestore.onFamilyBooksSnapshot as jest.Mock).mockImplementation((_familyId, callback) => {
+      callback(mockFamilyBooks);
+      return jest.fn();
+    });
+
+    // Default mock implementation for member library snapshot
+    (firestore.onMemberLibrarySnapshot as jest.Mock).mockImplementation((_familyId, _memberId, callback) => {
+      callback(mockLibraryEntries);
+      return jest.fn();
     });
   });
 
@@ -76,9 +91,10 @@ describe('use-series hooks', () => {
       expect(harryPotterSeries?.booksOwned).toBe(3);
       expect(harryPotterSeries?.booksRead).toBe(1);
       expect(harryPotterSeries?.progressPercent).toBe(14); // 1/7 = ~14%
+      expect(harryPotterSeries?.isInLibrary).toBe(true);
     });
 
-    it('should return empty series when no member selected', async () => {
+    it('should return series with zero progress when no member selected', async () => {
       (useFamilyStore as unknown as jest.Mock).mockImplementation((selector) => {
         const state = {
           family: mockFamily,
@@ -87,10 +103,24 @@ describe('use-series hooks', () => {
         return selector(state);
       });
 
+      // No library entries when no member selected
+      (firestore.onMemberLibrarySnapshot as jest.Mock).mockImplementation(() => jest.fn());
+      (firestore.onFamilyBooksSnapshot as jest.Mock).mockImplementation(() => jest.fn());
+
       const { result } = renderHook(() => useSeries());
 
-      expect(result.current.series).toEqual([]);
-      expect(result.current.totalSeries).toBe(0);
+      await waitFor(() => {
+        expect(result.current.series.length).toBe(2);
+      });
+
+      // Series are visible but progress is 0 since no member selected
+      expect(result.current.totalSeries).toBe(2);
+      result.current.series.forEach((s) => {
+        expect(s.booksOwned).toBe(0);
+        expect(s.booksRead).toBe(0);
+        expect(s.booksInSeries).toEqual([]);
+        expect(s.isInLibrary).toBe(false);
+      });
     });
 
     it('should correctly count books in series', async () => {
@@ -128,8 +158,8 @@ describe('use-series hooks', () => {
 
       expect(firestore.createSeries).toHaveBeenCalledWith(
         'family-1',
-        'member-1',
-        { name: 'New Series', totalBooks: 3 }
+        { name: 'New Series', totalBooks: 3 },
+        'member-1'
       );
     });
 
@@ -149,7 +179,7 @@ describe('use-series hooks', () => {
       ).rejects.toThrow('No family loaded');
     });
 
-    it('should throw error when no member selected', async () => {
+    it('should add series without member selected (no createdBy)', async () => {
       (useFamilyStore as unknown as jest.Mock).mockImplementation((selector) => {
         const state = {
           family: mockFamily,
@@ -157,12 +187,23 @@ describe('use-series hooks', () => {
         };
         return selector(state);
       });
+      (firestore.createSeries as jest.Mock).mockResolvedValue('new-series-id');
 
       const { result } = renderHook(() => useSeriesOperations());
 
-      await expect(
-        result.current.addSeries({ name: 'Test', totalBooks: 3 })
-      ).rejects.toThrow('No member selected');
+      await act(async () => {
+        const seriesId = await result.current.addSeries({
+          name: 'Shared Series',
+          totalBooks: 5,
+        });
+        expect(seriesId).toBe('new-series-id');
+      });
+
+      expect(firestore.createSeries).toHaveBeenCalledWith(
+        'family-1',
+        { name: 'Shared Series', totalBooks: 5 },
+        undefined
+      );
     });
 
     it('should edit series correctly', async () => {
@@ -174,7 +215,6 @@ describe('use-series hooks', () => {
 
       expect(firestore.updateSeries).toHaveBeenCalledWith(
         'family-1',
-        'member-1',
         'series-1',
         { name: 'Updated Name' }
       );
@@ -189,7 +229,6 @@ describe('use-series hooks', () => {
 
       expect(firestore.deleteSeries).toHaveBeenCalledWith(
         'family-1',
-        'member-1',
         'series-1'
       );
     });
@@ -207,8 +246,26 @@ describe('use-series hooks', () => {
       expect(series).toEqual(mockSeries[0]);
       expect(firestore.getSeriesById).toHaveBeenCalledWith(
         'family-1',
-        'member-1',
         'series-1'
+      );
+    });
+
+    it('should add series to library', async () => {
+      (firestore.addSeriesToMemberLibrary as jest.Mock).mockResolvedValue({ added: 5, skipped: 0 });
+
+      const { result } = renderHook(() => useSeriesOperations());
+
+      let res;
+      await act(async () => {
+        res = await result.current.addSeriesToLibrary('series-1');
+      });
+
+      expect(res).toEqual({ added: 5, skipped: 0 });
+      expect(firestore.addSeriesToMemberLibrary).toHaveBeenCalledWith(
+        'family-1',
+        'member-1',
+        'series-1',
+        'to-read'
       );
     });
   });
@@ -247,13 +304,100 @@ describe('use-series hooks', () => {
       expect(result.current.series).toBeNull();
       expect(result.current.books).toEqual([]);
     });
+
+    it('should show all family books in series with member status overlaid', async () => {
+      // Family has 4 books in series, but member only has 2 in their library
+      const familyBooksWithExtra: FamilyBook[] = [
+        { id: 'book-1', title: 'Book 1', author: 'Author', addedBy: 'member-1', seriesId: 'series-1', seriesOrder: 1, addedAt: {} as any },
+        { id: 'book-2', title: 'Book 2', author: 'Author', addedBy: 'member-1', seriesId: 'series-1', seriesOrder: 2, addedAt: {} as any },
+        { id: 'book-3', title: 'Book 3', author: 'Author', addedBy: 'member-2', seriesId: 'series-1', seriesOrder: 3, addedAt: {} as any },
+        { id: 'book-4', title: 'Book 4', author: 'Author', addedBy: 'member-2', seriesId: 'series-1', seriesOrder: 4, addedAt: {} as any },
+      ];
+
+      // Member only has books 1 and 2 in their library
+      const memberLibrary: MemberLibraryEntry[] = [
+        { id: 'entry-1', bookId: 'book-1', status: 'read', addedAt: {} as any },
+        { id: 'entry-2', bookId: 'book-2', status: 'reading', addedAt: {} as any },
+      ];
+
+      (firestore.onFamilyBooksSnapshot as jest.Mock).mockImplementation((_familyId, callback) => {
+        callback(familyBooksWithExtra);
+        return jest.fn();
+      });
+
+      (firestore.onMemberLibrarySnapshot as jest.Mock).mockImplementation((_familyId, _memberId, callback) => {
+        callback(memberLibrary);
+        return jest.fn();
+      });
+
+      const { result } = renderHook(() => useSeriesDetail('series-1'));
+
+      await waitFor(() => {
+        expect(result.current.books.length).toBe(4);
+      });
+
+      // All 4 books should be shown
+      expect(result.current.books.length).toBe(4);
+
+      // Book 1 should have member's status (read) and be in library
+      const book1 = result.current.books.find(b => b.id === 'book-1');
+      expect(book1?.status).toBe('read');
+      expect(book1?.isInLibrary).toBe(true);
+      expect(book1?.libraryEntryId).toBe('entry-1');
+
+      // Book 2 should have member's status (reading) and be in library
+      const book2 = result.current.books.find(b => b.id === 'book-2');
+      expect(book2?.status).toBe('reading');
+      expect(book2?.isInLibrary).toBe(true);
+      expect(book2?.libraryEntryId).toBe('entry-2');
+
+      // Book 3 should have default status (to-read) and NOT be in library
+      const book3 = result.current.books.find(b => b.id === 'book-3');
+      expect(book3?.status).toBe('to-read');
+      expect(book3?.isInLibrary).toBe(false);
+      expect(book3?.libraryEntryId).toBeUndefined();
+
+      // Book 4 should have default status (to-read) and NOT be in library
+      const book4 = result.current.books.find(b => b.id === 'book-4');
+      expect(book4?.status).toBe('to-read');
+      expect(book4?.isInLibrary).toBe(false);
+      expect(book4?.libraryEntryId).toBeUndefined();
+    });
+
+    it('should show all books as to-read when member has empty library', async () => {
+      // Member has no books in their library
+      (firestore.onMemberLibrarySnapshot as jest.Mock).mockImplementation((_familyId, _memberId, callback) => {
+        callback([]);
+        return jest.fn();
+      });
+
+      const { result } = renderHook(() => useSeriesDetail('series-1'));
+
+      await waitFor(() => {
+        expect(result.current.books.length).toBe(3);
+      });
+
+      // All books should show to-read status and not be in library
+      result.current.books.forEach(book => {
+        expect(book.status).toBe('to-read');
+        expect(book.isInLibrary).toBe(false);
+        expect(book.libraryEntryId).toBeUndefined();
+      });
+    });
   });
 
   describe('progress calculation', () => {
     it('should calculate 0% progress when no books read', async () => {
-      (firestore.onBooksSnapshot as jest.Mock).mockImplementation((_familyId, _memberId, callback) => {
+      (firestore.onMemberLibrarySnapshot as jest.Mock).mockImplementation((_familyId, _memberId, callback) => {
         callback([
-          { id: 'book-1', memberId: 'member-1', title: 'Book 1', author: 'Author', status: 'to-read', seriesId: 'series-1', seriesOrder: 1, addedAt: {} as any },
+          { id: 'entry-1', bookId: 'book-1', status: 'to-read', addedAt: {} as any },
+        ]);
+        return jest.fn();
+      });
+
+      (firestore.onFamilyBooksSnapshot as jest.Mock).mockImplementation((_familyId, callback) => {
+        callback([
+          { id: 'book-1', title: 'Book 1', author: 'Author', addedBy: 'member-1', seriesId: 'series-1', seriesOrder: 1, addedAt: {} as any },
         ]);
         return jest.fn();
       });
@@ -270,15 +414,23 @@ describe('use-series hooks', () => {
     });
 
     it('should calculate 100% progress when all books read', async () => {
-      (firestore.onSeriesSnapshot as jest.Mock).mockImplementation((_familyId, _memberId, callback) => {
-        callback([{ id: 'series-1', memberId: 'member-1', name: 'Complete Series', totalBooks: 2 }]);
+      (firestore.onSeriesSnapshot as jest.Mock).mockImplementation((_familyId, callback) => {
+        callback([{ id: 'series-1', name: 'Complete Series', totalBooks: 2 }]);
         return jest.fn();
       });
 
-      (firestore.onBooksSnapshot as jest.Mock).mockImplementation((_familyId, _memberId, callback) => {
+      (firestore.onMemberLibrarySnapshot as jest.Mock).mockImplementation((_familyId, _memberId, callback) => {
         callback([
-          { id: 'book-1', memberId: 'member-1', title: 'Book 1', author: 'Author', status: 'read', seriesId: 'series-1', seriesOrder: 1, addedAt: {} as any },
-          { id: 'book-2', memberId: 'member-1', title: 'Book 2', author: 'Author', status: 'read', seriesId: 'series-1', seriesOrder: 2, addedAt: {} as any },
+          { id: 'entry-1', bookId: 'book-1', status: 'read', addedAt: {} as any },
+          { id: 'entry-2', bookId: 'book-2', status: 'read', addedAt: {} as any },
+        ]);
+        return jest.fn();
+      });
+
+      (firestore.onFamilyBooksSnapshot as jest.Mock).mockImplementation((_familyId, callback) => {
+        callback([
+          { id: 'book-1', title: 'Book 1', author: 'Author', addedBy: 'member-1', seriesId: 'series-1', seriesOrder: 1, addedAt: {} as any },
+          { id: 'book-2', title: 'Book 2', author: 'Author', addedBy: 'member-1', seriesId: 'series-1', seriesOrder: 2, addedAt: {} as any },
         ]);
         return jest.fn();
       });
@@ -295,4 +447,3 @@ describe('use-series hooks', () => {
     });
   });
 });
-

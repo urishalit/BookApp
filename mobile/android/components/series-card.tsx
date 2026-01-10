@@ -11,11 +11,19 @@ interface SeriesCardProps {
   series: SeriesWithProgress;
   onPress?: () => void;
   onLongPress?: () => void;
+  onAddToLibrary?: () => void;
+  showAddButton?: boolean;
 }
 
 const PLACEHOLDER_COVER = 'https://via.placeholder.com/64x96/E5D4C0/8B5A2B?text=No+Cover';
 
-export function SeriesCard({ series, onPress, onLongPress }: SeriesCardProps) {
+export function SeriesCard({ 
+  series, 
+  onPress, 
+  onLongPress, 
+  onAddToLibrary,
+  showAddButton = true,
+}: SeriesCardProps) {
   const cardBackground = useThemeColor({}, 'background');
   const borderColor = useThemeColor(
     { light: '#E5D4C0', dark: '#2D3748' },
@@ -26,6 +34,7 @@ export function SeriesCard({ series, onPress, onLongPress }: SeriesCardProps) {
     'text'
   );
   const primaryColor = useThemeColor({ light: '#8B5A2B', dark: '#D4A574' }, 'text');
+  const successColor = '#4CAF50';
 
   // Get cover from first book in series, if available
   const firstBook = series.booksInSeries.find((b) => b.seriesOrder === 1) 
@@ -83,16 +92,40 @@ export function SeriesCard({ series, onPress, onLongPress }: SeriesCardProps) {
           </ThemedText>
         </View>
 
-        {/* Progress */}
+        {/* Footer: Progress or Add Button */}
         <View style={styles.footer}>
-          <SeriesProgress
-            booksRead={series.booksRead}
-            totalBooks={series.totalBooks}
-            booksOwned={series.booksOwned}
-            size="small"
-          />
+          {series.isInLibrary ? (
+            <SeriesProgress
+              booksRead={series.booksRead}
+              totalBooks={series.totalBooks}
+              booksOwned={series.booksOwned}
+              size="small"
+            />
+          ) : showAddButton && onAddToLibrary ? (
+            <Pressable
+              style={[styles.addButton, { backgroundColor: primaryColor }]}
+              onPress={(e) => {
+                e.stopPropagation?.();
+                onAddToLibrary();
+              }}
+            >
+              <IconSymbol name="plus" size={14} color="#FFFFFF" />
+              <ThemedText style={styles.addButtonText}>Add to Library</ThemedText>
+            </Pressable>
+          ) : (
+            <ThemedText style={[styles.notInLibraryText, { color: subtitleColor }]}>
+              Not in your library
+            </ThemedText>
+          )}
         </View>
       </View>
+
+      {/* In Library Badge */}
+      {series.isInLibrary && (
+        <View style={[styles.inLibraryBadge, { backgroundColor: successColor }]}>
+          <IconSymbol name="checkmark" size={12} color="#FFFFFF" />
+        </View>
+      )}
     </Pressable>
   );
 }
@@ -110,6 +143,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.08,
     shadowRadius: 8,
     elevation: 3,
+    position: 'relative',
   },
   coverStack: {
     width: 70,
@@ -170,5 +204,32 @@ const styles = StyleSheet.create({
   footer: {
     marginTop: 8,
   },
+  addButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 16,
+    alignSelf: 'flex-start',
+  },
+  addButtonText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  notInLibraryText: {
+    fontSize: 13,
+    fontStyle: 'italic',
+  },
+  inLibraryBadge: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
 });
-

@@ -6,9 +6,12 @@ import {
   deleteSeries,
   getSeriesById,
   onSeriesSnapshot,
-  onBooksSnapshot,
+  getSeriesBooksFromCatalog,
+  addSeriesToMemberLibrary,
+  onFamilyBooksSnapshot,
 } from '@/lib/firestore';
-import type { Series, Book, CreateSeries } from '@/types/models';
+import { useBooksListener } from '@/hooks/use-books';
+import type { Series, MemberBook, FamilyBook, CreateSeries, SeriesBookDisplay } from '@/types/models';
 
 interface SeriesState {
   series: Series[];
@@ -17,12 +20,11 @@ interface SeriesState {
 }
 
 /**
- * Hook to manage series for the selected family member.
- * Sets up a real-time listener for the member's series.
+ * Hook to manage series for the family.
+ * Sets up a real-time listener for the family's series (shared across all members).
  */
 export function useSeriesListener() {
   const family = useFamilyStore((s) => s.family);
-  const selectedMemberId = useFamilyStore((s) => s.selectedMemberId);
 
   const [state, setState] = useState<SeriesState>({
     series: [],
@@ -31,21 +33,21 @@ export function useSeriesListener() {
   });
 
   useEffect(() => {
-    if (!family || !selectedMemberId) {
+    if (!family) {
       setState({ series: [], isLoading: false, error: null });
       return;
     }
 
     setState((prev) => ({ ...prev, isLoading: true, error: null }));
 
-    const unsubscribe = onSeriesSnapshot(family.id, selectedMemberId, (series) => {
+    const unsubscribe = onSeriesSnapshot(family.id, (series) => {
       setState({ series, isLoading: false, error: null });
     });
 
     return () => {
       unsubscribe();
     };
-  }, [family, selectedMemberId]);
+  }, [family]);
 
   return state;
 }
@@ -54,41 +56,25 @@ export function useSeriesListener() {
  * Extended series data with book counts and progress
  */
 export interface SeriesWithProgress extends Series {
-  booksInSeries: Book[];
+  booksInSeries: MemberBook[];
   booksRead: number;
   booksOwned: number;
   progressPercent: number;
+  isInLibrary: boolean; // Whether the member has any books from this series
 }
 
 /**
- * Hook for accessing series with book progress
+ * Hook for accessing series with book progress for the selected member
+ * Series are shared across family, but progress is calculated per member
  */
 export function useSeries() {
   const { series, isLoading, error } = useSeriesListener();
-  const family = useFamilyStore((s) => s.family);
-  const selectedMemberId = useFamilyStore((s) => s.selectedMemberId);
+  const { books } = useBooksListener();
   
-  const [books, setBooks] = useState<Book[]>([]);
-
-  // Subscribe to books to calculate series progress
-  useEffect(() => {
-    if (!family || !selectedMemberId) {
-      setBooks([]);
-      return;
-    }
-
-    const unsubscribe = onBooksSnapshot(family.id, selectedMemberId, (allBooks) => {
-      setBooks(allBooks);
-    });
-
-    return () => {
-      unsubscribe();
-    };
-  }, [family, selectedMemberId]);
-
-  // Calculate series with progress
+  // Calculate series with progress for selected member
   const seriesWithProgress: SeriesWithProgress[] = useMemo(() => {
     return series.map((s) => {
+      // Only count books from the selected member's library
       const booksInSeries = books.filter((book) => book.seriesId === s.id);
       const booksRead = booksInSeries.filter((book) => book.status === 'read').length;
       const booksOwned = booksInSeries.length;
@@ -102,6 +88,7 @@ export function useSeries() {
         booksRead,
         booksOwned,
         progressPercent,
+        isInLibrary: booksOwned > 0,
       };
     });
   }, [series, books]);
@@ -117,17 +104,18 @@ export function useSeries() {
 
 /**
  * Hook for series CRUD operations
+ * Series are shared across family members
  */
 export function useSeriesOperations() {
   const family = useFamilyStore((s) => s.family);
   const selectedMemberId = useFamilyStore((s) => s.selectedMemberId);
 
   const addSeries = useCallback(
-    async (data: Omit<CreateSeries, 'memberId'>) => {
+    async (data: Omit<CreateSeries, 'createdBy'>) => {
       if (!family) throw new Error('No family loaded');
-      if (!selectedMemberId) throw new Error('No member selected');
 
-      const seriesId = await createSeries(family.id, selectedMemberId, data);
+      // Pass selectedMemberId as createdBy for tracking (optional)
+      const seriesId = await createSeries(family.id, data, selectedMemberId ?? undefined);
       return seriesId;
     },
     [family, selectedMemberId]
@@ -136,31 +124,54 @@ export function useSeriesOperations() {
   const editSeries = useCallback(
     async (seriesId: string, data: Partial<Series>) => {
       if (!family) throw new Error('No family loaded');
-      if (!selectedMemberId) throw new Error('No member selected');
 
-      await updateSeries(family.id, selectedMemberId, seriesId, data);
+      await updateSeries(family.id, seriesId, data);
     },
-    [family, selectedMemberId]
+    [family]
   );
 
   const removeSeries = useCallback(
     async (seriesId: string) => {
       if (!family) throw new Error('No family loaded');
-      if (!selectedMemberId) throw new Error('No member selected');
 
-      await deleteSeries(family.id, selectedMemberId, seriesId);
+      await deleteSeries(family.id, seriesId);
     },
-    [family, selectedMemberId]
+    [family]
   );
 
   const fetchSeries = useCallback(
     async (seriesId: string): Promise<Series | null> => {
       if (!family) throw new Error('No family loaded');
+
+      return getSeriesById(family.id, seriesId);
+    },
+    [family]
+  );
+
+  /**
+   * Add a series to the member's library.
+   * This adds all books in the series with "to-read" status.
+   */
+  const addSeriesToLibrary = useCallback(
+    async (seriesId: string): Promise<{ added: number; skipped: number }> => {
+      if (!family) throw new Error('No family loaded');
       if (!selectedMemberId) throw new Error('No member selected');
 
-      return getSeriesById(family.id, selectedMemberId, seriesId);
+      return addSeriesToMemberLibrary(family.id, selectedMemberId, seriesId, 'to-read');
     },
     [family, selectedMemberId]
+  );
+
+  /**
+   * Get all books in a series from the family catalog
+   */
+  const getSeriesBooks = useCallback(
+    async (seriesId: string): Promise<FamilyBook[]> => {
+      if (!family) throw new Error('No family loaded');
+
+      return getSeriesBooksFromCatalog(family.id, seriesId);
+    },
+    [family]
   );
 
   return {
@@ -168,34 +179,90 @@ export function useSeriesOperations() {
     editSeries,
     removeSeries,
     fetchSeries,
+    addSeriesToLibrary,
+    getSeriesBooks,
   };
 }
 
 /**
- * Hook to get a single series by ID with its books
+ * Hook to get a single series by ID with ALL books in the series.
+ * Shows all books from the family catalog for this series,
+ * with the member's library status overlaid (or 'to-read' if not in library).
  */
 export function useSeriesDetail(seriesId: string | undefined) {
+  const family = useFamilyStore((s) => s.family);
   const { series } = useSeries();
+  const { books: memberBooks } = useBooksListener();
+  
+  // State for all family books in this series
+  const [familyBooksInSeries, setFamilyBooksInSeries] = useState<FamilyBook[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Subscribe to family books and filter by series
+  useEffect(() => {
+    if (!family || !seriesId) {
+      setFamilyBooksInSeries([]);
+      return;
+    }
+
+    setIsLoading(true);
+
+    const unsubscribe = onFamilyBooksSnapshot(family.id, (allBooks) => {
+      const booksInSeries = allBooks.filter((book) => book.seriesId === seriesId);
+      setFamilyBooksInSeries(booksInSeries);
+      setIsLoading(false);
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [family, seriesId]);
   
   const seriesDetail = useMemo(() => {
     if (!seriesId) return null;
     return series.find((s) => s.id === seriesId) ?? null;
   }, [series, seriesId]);
 
-  // Sort books by series order
-  const sortedBooks = useMemo(() => {
-    if (!seriesDetail) return [];
-    return [...seriesDetail.booksInSeries].sort((a, b) => {
-      const orderA = a.seriesOrder ?? Infinity;
-      const orderB = b.seriesOrder ?? Infinity;
-      return orderA - orderB;
-    });
-  }, [seriesDetail]);
+  // Create a map of member's library entries by book ID for quick lookup
+  const memberLibraryMap = useMemo(() => {
+    const map = new Map<string, MemberBook>();
+    for (const book of memberBooks) {
+      map.set(book.id, book);
+    }
+    return map;
+  }, [memberBooks]);
+
+  // Merge family books with member's library status
+  const displayBooks: SeriesBookDisplay[] = useMemo(() => {
+    return familyBooksInSeries
+      .map((familyBook): SeriesBookDisplay => {
+        const memberBook = memberLibraryMap.get(familyBook.id);
+        
+        return {
+          // Book metadata from family catalog
+          id: familyBook.id,
+          title: familyBook.title,
+          author: familyBook.author,
+          thumbnailUrl: familyBook.thumbnailUrl,
+          googleBooksId: familyBook.googleBooksId,
+          seriesId: familyBook.seriesId,
+          seriesOrder: familyBook.seriesOrder,
+          // Library status (from member's library or default)
+          libraryEntryId: memberBook?.libraryEntryId,
+          status: memberBook?.status ?? 'to-read',
+          isInLibrary: !!memberBook,
+        };
+      })
+      .sort((a, b) => {
+        const orderA = a.seriesOrder ?? Infinity;
+        const orderB = b.seriesOrder ?? Infinity;
+        return orderA - orderB;
+      });
+  }, [familyBooksInSeries, memberLibraryMap]);
 
   return {
     series: seriesDetail,
-    books: sortedBooks,
-    isLoading: false,
+    books: displayBooks,
+    isLoading,
   };
 }
-

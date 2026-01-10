@@ -1,21 +1,51 @@
 import { renderHook, act } from '@testing-library/react-native';
 import { useFamilyStore } from '../../stores/family-store';
-import type { Book, Family } from '../../types/models';
+import type { MemberBook, MemberLibraryEntry, FamilyBook, Family } from '../../types/models';
 
 // Must mock before importing the hook
 jest.mock('../../lib/firestore', () => ({
-  onBooksSnapshot: jest.fn((familyId, memberId, callback) => {
-    // Return unsubscribe function
+  onMemberLibrarySnapshot: jest.fn((familyId, memberId, callback) => {
     return jest.fn();
   }),
-  createBook: jest.fn(() => Promise.resolve('new-book-id')),
-  updateBook: jest.fn(() => Promise.resolve()),
-  deleteBook: jest.fn(() => Promise.resolve()),
-  getBook: jest.fn(() => Promise.resolve(null)),
+  onFamilyBooksSnapshot: jest.fn((familyId, callback) => {
+    return jest.fn();
+  }),
+  findOrCreateFamilyBook: jest.fn(() => Promise.resolve({ bookId: 'new-book-id', isNew: true })),
+  addToMemberLibrary: jest.fn(() => Promise.resolve('library-entry-id')),
+  updateMemberLibraryEntry: jest.fn(() => Promise.resolve()),
+  removeFromMemberLibrary: jest.fn(() => Promise.resolve()),
+  updateFamilyBook: jest.fn(() => Promise.resolve()),
+  getFamilyBook: jest.fn(() => Promise.resolve(null)),
+  getSeriesBooksFromCatalog: jest.fn(() => Promise.resolve([])),
+  addSeriesToMemberLibrary: jest.fn(() => Promise.resolve({ added: 3, skipped: 0 })),
 }));
 
-import { useBooks, useBookOperations, useBooksListener } from '../../hooks/use-books';
+import { useBooks, useBookOperations, useBooksListener, getNextStatus } from '../../hooks/use-books';
 import * as firestoreModule from '../../lib/firestore';
+
+describe('getNextStatus', () => {
+  it('should cycle from to-read to reading', () => {
+    expect(getNextStatus('to-read')).toBe('reading');
+  });
+
+  it('should cycle from reading to read', () => {
+    expect(getNextStatus('reading')).toBe('read');
+  });
+
+  it('should cycle from read back to to-read', () => {
+    expect(getNextStatus('read')).toBe('to-read');
+  });
+
+  it('should complete full cycle correctly', () => {
+    let status: 'to-read' | 'reading' | 'read' = 'to-read';
+    status = getNextStatus(status); // to-read -> reading
+    expect(status).toBe('reading');
+    status = getNextStatus(status); // reading -> read
+    expect(status).toBe('read');
+    status = getNextStatus(status); // read -> to-read
+    expect(status).toBe('to-read');
+  });
+});
 
 describe('useBooks Hook', () => {
   const mockFamily: Family = {
@@ -25,36 +55,59 @@ describe('useBooks Hook', () => {
     createdAt: { seconds: 0, nanoseconds: 0 } as any,
   };
 
-  const mockBooks: Book[] = [
+  const mockFamilyBooks: FamilyBook[] = [
     {
       id: 'book-1',
-      memberId: 'member-123',
       title: 'Book One',
       author: 'Author One',
-      status: 'reading',
+      addedBy: 'member-123',
       addedAt: { seconds: 1, nanoseconds: 0 } as any,
     },
     {
       id: 'book-2',
-      memberId: 'member-123',
       title: 'Book Two',
       author: 'Author Two',
-      status: 'to-read',
+      addedBy: 'member-123',
       addedAt: { seconds: 2, nanoseconds: 0 } as any,
     },
     {
       id: 'book-3',
-      memberId: 'member-123',
       title: 'Book Three',
       author: 'Author Three',
-      status: 'read',
+      addedBy: 'member-123',
       addedAt: { seconds: 3, nanoseconds: 0 } as any,
     },
     {
       id: 'book-4',
-      memberId: 'member-123',
       title: 'Book Four',
       author: 'Author Four',
+      addedBy: 'member-123',
+      addedAt: { seconds: 4, nanoseconds: 0 } as any,
+    },
+  ];
+
+  const mockLibraryEntries: MemberLibraryEntry[] = [
+    {
+      id: 'entry-1',
+      bookId: 'book-1',
+      status: 'reading',
+      addedAt: { seconds: 1, nanoseconds: 0 } as any,
+    },
+    {
+      id: 'entry-2',
+      bookId: 'book-2',
+      status: 'to-read',
+      addedAt: { seconds: 2, nanoseconds: 0 } as any,
+    },
+    {
+      id: 'entry-3',
+      bookId: 'book-3',
+      status: 'read',
+      addedAt: { seconds: 3, nanoseconds: 0 } as any,
+    },
+    {
+      id: 'entry-4',
+      bookId: 'book-4',
       status: 'reading',
       addedAt: { seconds: 4, nanoseconds: 0 } as any,
     },
@@ -62,7 +115,6 @@ describe('useBooks Hook', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    // Reset store state
     useFamilyStore.setState({
       family: null,
       members: [],
@@ -89,7 +141,7 @@ describe('useBooks Hook', () => {
       expect(result.current.books).toEqual([]);
     });
 
-    it('should subscribe to books when family and member are set', () => {
+    it('should subscribe to library and family books when family and member are set', () => {
       useFamilyStore.setState({
         family: mockFamily,
         selectedMemberId: 'member-123',
@@ -97,16 +149,22 @@ describe('useBooks Hook', () => {
 
       renderHook(() => useBooksListener());
 
-      expect(firestoreModule.onBooksSnapshot).toHaveBeenCalledWith(
+      expect(firestoreModule.onMemberLibrarySnapshot).toHaveBeenCalledWith(
         'family-123',
         'member-123',
+        expect.any(Function)
+      );
+      expect(firestoreModule.onFamilyBooksSnapshot).toHaveBeenCalledWith(
+        'family-123',
         expect.any(Function)
       );
     });
 
     it('should unsubscribe when unmounted', () => {
-      const mockUnsubscribe = jest.fn();
-      (firestoreModule.onBooksSnapshot as jest.Mock).mockReturnValue(mockUnsubscribe);
+      const mockUnsubscribeLibrary = jest.fn();
+      const mockUnsubscribeBooks = jest.fn();
+      (firestoreModule.onMemberLibrarySnapshot as jest.Mock).mockReturnValue(mockUnsubscribeLibrary);
+      (firestoreModule.onFamilyBooksSnapshot as jest.Mock).mockReturnValue(mockUnsubscribeBooks);
 
       useFamilyStore.setState({
         family: mockFamily,
@@ -116,16 +174,23 @@ describe('useBooks Hook', () => {
       const { unmount } = renderHook(() => useBooksListener());
       unmount();
 
-      expect(mockUnsubscribe).toHaveBeenCalled();
+      expect(mockUnsubscribeLibrary).toHaveBeenCalled();
+      expect(mockUnsubscribeBooks).toHaveBeenCalled();
     });
   });
 
   describe('useBooks - filtering', () => {
     beforeEach(() => {
-      // Setup mock to call callback with books
-      (firestoreModule.onBooksSnapshot as jest.Mock).mockImplementation(
+      // Setup mocks to simulate data flow
+      (firestoreModule.onMemberLibrarySnapshot as jest.Mock).mockImplementation(
         (familyId, memberId, callback) => {
-          callback(mockBooks);
+          callback(mockLibraryEntries);
+          return jest.fn();
+        }
+      );
+      (firestoreModule.onFamilyBooksSnapshot as jest.Mock).mockImplementation(
+        (familyId, callback) => {
+          callback(mockFamilyBooks);
           return jest.fn();
         }
       );
@@ -198,59 +263,82 @@ describe('useBooks Hook', () => {
     it('should add a book', async () => {
       const { result } = renderHook(() => useBookOperations());
 
-      const bookId = await result.current.addBook({
+      const { bookId, libraryEntryId } = await result.current.addBook({
         title: 'New Book',
         author: 'New Author',
         status: 'to-read',
       });
 
       expect(bookId).toBe('new-book-id');
-      expect(firestoreModule.createBook).toHaveBeenCalledWith(
+      expect(libraryEntryId).toBe('library-entry-id');
+      expect(firestoreModule.findOrCreateFamilyBook).toHaveBeenCalledWith(
         'family-123',
-        'member-123',
         expect.objectContaining({
           title: 'New Book',
           author: 'New Author',
-          status: 'to-read',
+          addedBy: 'member-123',
         })
       );
-    });
-
-    it('should update a book', async () => {
-      const { result } = renderHook(() => useBookOperations());
-
-      await result.current.editBook('book-1', { title: 'Updated Title' });
-
-      expect(firestoreModule.updateBook).toHaveBeenCalledWith(
+      expect(firestoreModule.addToMemberLibrary).toHaveBeenCalledWith(
         'family-123',
         'member-123',
-        'book-1',
-        { title: 'Updated Title' }
-      );
-    });
-
-    it('should delete a book', async () => {
-      const { result } = renderHook(() => useBookOperations());
-
-      await result.current.removeBook('book-1');
-
-      expect(firestoreModule.deleteBook).toHaveBeenCalledWith(
-        'family-123',
-        'member-123',
-        'book-1'
+        'new-book-id',
+        'to-read'
       );
     });
 
     it('should update book status', async () => {
       const { result } = renderHook(() => useBookOperations());
 
-      await result.current.updateBookStatus('book-1', 'read');
+      await result.current.updateBookStatus('entry-1', 'read');
 
-      expect(firestoreModule.updateBook).toHaveBeenCalledWith(
+      expect(firestoreModule.updateMemberLibraryEntry).toHaveBeenCalledWith(
         'family-123',
         'member-123',
-        'book-1',
+        'entry-1',
         { status: 'read' }
+      );
+    });
+
+    it('should remove a book from library', async () => {
+      const { result } = renderHook(() => useBookOperations());
+
+      await result.current.removeBook('entry-1');
+
+      expect(firestoreModule.removeFromMemberLibrary).toHaveBeenCalledWith(
+        'family-123',
+        'member-123',
+        'entry-1'
+      );
+    });
+
+    it('should update book metadata', async () => {
+      const { result } = renderHook(() => useBookOperations());
+
+      await result.current.updateBookMetadata('book-1', {
+        seriesId: 'series-hp',
+        seriesOrder: 2,
+      });
+
+      expect(firestoreModule.updateFamilyBook).toHaveBeenCalledWith(
+        'family-123',
+        'book-1',
+        { seriesId: 'series-hp', seriesOrder: 2 }
+      );
+    });
+
+    it('should add series to library', async () => {
+      const { result } = renderHook(() => useBookOperations());
+
+      const { added, skipped } = await result.current.addSeriesToLibrary('series-123');
+
+      expect(added).toBe(3);
+      expect(skipped).toBe(0);
+      expect(firestoreModule.addSeriesToMemberLibrary).toHaveBeenCalledWith(
+        'family-123',
+        'member-123',
+        'series-123',
+        'to-read'
       );
     });
 
@@ -273,6 +361,67 @@ describe('useBooks Hook', () => {
         result.current.addBook({ title: 'Test', author: 'Test', status: 'reading' })
       ).rejects.toThrow('No member selected');
     });
+
+    describe('addOrUpdateBookStatus', () => {
+      it('should update status when libraryEntryId is provided', async () => {
+        const { result } = renderHook(() => useBookOperations());
+
+        const returnedId = await result.current.addOrUpdateBookStatus(
+          'book-1',
+          'read',
+          'entry-1'
+        );
+
+        expect(returnedId).toBe('entry-1');
+        expect(firestoreModule.updateMemberLibraryEntry).toHaveBeenCalledWith(
+          'family-123',
+          'member-123',
+          'entry-1',
+          { status: 'read' }
+        );
+        expect(firestoreModule.addToMemberLibrary).not.toHaveBeenCalled();
+      });
+
+      it('should add book to library when libraryEntryId is not provided', async () => {
+        (firestoreModule.addToMemberLibrary as jest.Mock).mockResolvedValue('new-entry-id');
+
+        const { result } = renderHook(() => useBookOperations());
+
+        const returnedId = await result.current.addOrUpdateBookStatus(
+          'book-1',
+          'reading',
+          undefined
+        );
+
+        expect(returnedId).toBe('new-entry-id');
+        expect(firestoreModule.addToMemberLibrary).toHaveBeenCalledWith(
+          'family-123',
+          'member-123',
+          'book-1',
+          'reading'
+        );
+        expect(firestoreModule.updateMemberLibraryEntry).not.toHaveBeenCalled();
+      });
+
+      it('should throw error when no family is loaded', async () => {
+        useFamilyStore.setState({ family: null });
+
+        const { result } = renderHook(() => useBookOperations());
+
+        await expect(
+          result.current.addOrUpdateBookStatus('book-1', 'read', undefined)
+        ).rejects.toThrow('No family loaded');
+      });
+
+      it('should throw error when no member is selected', async () => {
+        useFamilyStore.setState({ selectedMemberId: null });
+
+        const { result } = renderHook(() => useBookOperations());
+
+        await expect(
+          result.current.addOrUpdateBookStatus('book-1', 'read', undefined)
+        ).rejects.toThrow('No member selected');
+      });
+    });
   });
 });
-

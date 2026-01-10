@@ -5,7 +5,6 @@
  * for selecting series and calculating suggested order numbers.
  */
 
-import type { Book } from '../../types/models';
 import type { SeriesWithProgress } from '../../hooks/use-series';
 
 describe('SeriesPicker Component Logic', () => {
@@ -17,13 +16,13 @@ describe('SeriesPicker Component Logic', () => {
     booksOwned: number
   ): SeriesWithProgress => ({
     id,
-    memberId: 'member-1',
     name,
     totalBooks,
     booksInSeries: [],
     booksRead: 0,
     booksOwned,
     progressPercent: 0,
+    isInLibrary: booksOwned > 0,
   });
 
   const mockSeries: SeriesWithProgress[] = [
@@ -134,7 +133,7 @@ describe('SeriesPicker Component Logic', () => {
     });
 
     it('should show default text when no series selected', () => {
-      const selectedSeries = undefined;
+      const selectedSeries: SeriesWithProgress | undefined = undefined;
       const displayText = selectedSeries ? selectedSeries.name : 'Not part of a series';
       
       expect(displayText).toBe('Not part of a series');
