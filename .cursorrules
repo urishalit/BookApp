@@ -38,3 +38,10 @@ npm run test:coverage # With coverage
 - Native modules require dev client (not Expo Go)
 - Keep Firebase config files in project root
 
+## Internationalization (i18n)
+
+- All user-facing strings must be translated using `t('key')` from `useTranslation()`
+- When editing UI files, scan for hardcoded strings and replace with translations
+- Add translations to both `locales/en.json` and `locales/he.json`
+- See `.cursor/rules/i18n.mdc` for detailed guidelines
+

@@ -1,0 +1,77 @@
+---
+description: Rules for internationalization and translation in UI files
+globs:
+  - "**/app/**/*.tsx"
+  - "**/components/**/*.tsx"
+  - "**/screens/**/*.tsx"
+alwaysApply: true
+---
+
+# Internationalization (i18n) Rules
+
+## Translation Check Requirement
+
+**When editing any screen or UI component file, always scan for hardcoded strings that need translation.**
+
+### Strings That Must Be Translated
+
+- Alert messages (titles and body text)
+- Button labels
+- Section titles and headers
+- Placeholder text
+- Error messages
+- Loading states
+- Empty states
+- Form labels
+- Confirmation dialogs
+- Navigation titles
+
+### Process
+
+1. **Scan the file** for any hardcoded user-facing strings
+2. **Replace hardcoded strings** with `t('key')` calls using `useTranslation()` hook
+3. **Add missing keys** to both locale files:
+   - `locales/en.json` (English)
+   - `locales/he.json` (Hebrew)
+4. **Use consistent key naming**:
+   - `common.*` for shared strings (cancel, save, error, etc.)
+   - `screenName.*` for screen-specific strings
+   - `componentName.*` for component-specific strings
+
+### Example
+
+```tsx
+// BAD - Hardcoded strings
+Alert.alert('Error', 'Failed to save');
+<ThemedText>Loading...</ThemedText>
+
+// GOOD - Translated strings
+const { t } = useTranslation();
+Alert.alert(t('common.error'), t('books.failedToSave'));
+<ThemedText>{t('common.loading')}</ThemedText>
+```
+
+### Key Naming Conventions
+
+| Type | Pattern | Example |
+|------|---------|---------|
+| Common actions | `common.{action}` | `common.save`, `common.cancel` |
+| Screen titles | `{screen}.title` | `books.title`, `settings.title` |
+| Error messages | `{screen}.failedTo{Action}` | `books.failedToRemove` |
+| Empty states | `{screen}.no{Items}Yet` | `series.noSeriesYet` |
+| Confirmations | `{screen}.{action}Confirm` | `books.removeBookConfirm` |
+
+### Locale Files Location
+
+```
+mobile/android/locales/
+├── en.json    # English translations
+└── he.json    # Hebrew translations (RTL)
+```
+
+### RTL Considerations
+
+Hebrew is a right-to-left (RTL) language. The app handles RTL automatically via `I18nManager`, but be mindful of:
+- Text alignment in custom layouts
+- Icon placement
+- Directional indicators (arrows, chevrons)
