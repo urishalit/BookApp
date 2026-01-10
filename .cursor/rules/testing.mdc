@@ -4,6 +4,10 @@ globs:
   - "**/__tests__/**/*.test.ts"
   - "**/__tests__/**/*.test.tsx"
   - "**/jest.*.js"
+  - "**/hooks/**/*.ts"
+  - "**/lib/**/*.ts"
+  - "**/stores/**/*.ts"
+  - "**/constants/**/*.ts"
 alwaysApply: true
 ---
 
@@ -12,6 +16,12 @@ alwaysApply: true
 ## Test Coverage Requirement
 
 **All new functionality and bug fixes MUST include tests.**
+
+When adding new functions to hooks, lib, stores, or constants:
+1. **STOP before marking the task complete**
+2. **Write tests** for the new functionality
+3. **Run tests** to verify they pass
+4. **Perform mutation testing** to verify tests are meaningful
 
 ### When Tests Are Required
 

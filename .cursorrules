@@ -2,7 +2,12 @@
 
 ## Testing Requirements
 
-When writing unit tests, ALWAYS perform mutation testing to verify tests are meaningful:
+**All new functionality MUST include tests.** When adding new functions, hooks, or significant logic:
+1. Write tests for the new functionality BEFORE considering the task complete
+2. Tests must cover the happy path and error cases
+3. Perform mutation testing to verify tests are meaningful
+
+When writing unit tests, ALWAYS perform mutation testing:
 
 1. After writing a test, introduce a breaking change to the code being tested
 2. Run the test to confirm it FAILS
