@@ -18,6 +18,8 @@ jest.mock('../../lib/firestore', () => ({
   getFamilyBook: jest.fn(() => Promise.resolve(null)),
   getSeriesBooksFromCatalog: jest.fn(() => Promise.resolve([])),
   addSeriesToMemberLibrary: jest.fn(() => Promise.resolve({ added: 3, skipped: 0 })),
+  createFamilyBook: jest.fn(() => Promise.resolve('new-book-id')),
+  updateSeries: jest.fn(() => Promise.resolve()),
 }));
 
 import { useBooks, useBookOperations, useBooksListener, getNextStatus } from '../../hooks/use-books';
@@ -520,6 +522,178 @@ describe('useBooks Hook', () => {
         await expect(
           result.current.updateSeriesBooksGenres('series-1', ['fantasy'])
         ).rejects.toThrow('No family loaded');
+      });
+    });
+
+    describe('addBooksToSeries', () => {
+      const mockGoogleBooks: any[] = [
+        {
+          googleBooksId: 'gb-1',
+          title: 'Book One',
+          author: 'Author One',
+          thumbnailUrl: 'https://example.com/cover1.jpg',
+          categories: ['Fiction', 'Fantasy'],
+        },
+        {
+          googleBooksId: 'gb-2',
+          title: 'Book Two',
+          author: 'Author Two',
+          thumbnailUrl: 'https://example.com/cover2.jpg',
+          categories: ['Fiction'],
+        },
+      ];
+
+      const mockExistingBooks: FamilyBook[] = [
+        {
+          id: 'existing-1',
+          title: 'Existing Book',
+          author: 'Author',
+          seriesId: 'series-1',
+          seriesOrder: 1,
+          addedBy: 'member-123',
+          addedAt: { seconds: 0, nanoseconds: 0 } as any,
+        },
+      ];
+
+      beforeEach(() => {
+        (firestoreModule.getSeriesBooksFromCatalog as jest.Mock).mockResolvedValue(mockExistingBooks);
+        (firestoreModule.findOrCreateFamilyBook as jest.Mock).mockResolvedValue({ bookId: 'new-book-id', isNew: true });
+        (firestoreModule.updateFamilyBook as jest.Mock).mockResolvedValue(undefined);
+        (firestoreModule.updateSeries as jest.Mock).mockResolvedValue(undefined);
+      });
+
+      it('should add books to series with correct order', async () => {
+        // Mock getSeriesBooksFromCatalog to return updated count after books are added
+        (firestoreModule.getSeriesBooksFromCatalog as jest.Mock)
+          .mockResolvedValueOnce(mockExistingBooks) // First call: get existing books
+          .mockResolvedValueOnce([...mockExistingBooks, { id: 'new-1' }, { id: 'new-2' }]); // Second call: after adding
+
+        const { result } = renderHook(() => useBookOperations());
+
+        await result.current.addBooksToSeries('series-1', mockGoogleBooks);
+
+        // Should get existing books to determine starting order
+        expect(firestoreModule.getSeriesBooksFromCatalog).toHaveBeenCalledWith('family-123', 'series-1');
+
+        // Should create/find books for each selected book
+        expect(firestoreModule.findOrCreateFamilyBook).toHaveBeenCalledTimes(2);
+        expect(firestoreModule.findOrCreateFamilyBook).toHaveBeenCalledWith(
+          'family-123',
+          expect.objectContaining({
+            title: 'Book One',
+            author: 'Author One',
+            googleBooksId: 'gb-1',
+            seriesId: 'series-1',
+            seriesOrder: 2, // Starting after existing book (order 1)
+          })
+        );
+        expect(firestoreModule.findOrCreateFamilyBook).toHaveBeenCalledWith(
+          'family-123',
+          expect.objectContaining({
+            title: 'Book Two',
+            author: 'Author Two',
+            googleBooksId: 'gb-2',
+            seriesId: 'series-1',
+            seriesOrder: 3,
+          })
+        );
+
+        // Should update series totalBooks count (called twice: once to get existing, once to update)
+        expect(firestoreModule.getSeriesBooksFromCatalog).toHaveBeenCalledTimes(2);
+        expect(firestoreModule.updateSeries).toHaveBeenCalledWith(
+          'family-123',
+          'series-1',
+          { totalBooks: 3 } // 1 existing + 2 new
+        );
+      });
+
+      it('should update existing books with series info if not new', async () => {
+        (firestoreModule.findOrCreateFamilyBook as jest.Mock)
+          .mockResolvedValueOnce({ bookId: 'existing-book-id', isNew: false });
+
+        const { result } = renderHook(() => useBookOperations());
+
+        await result.current.addBooksToSeries('series-1', [mockGoogleBooks.slice(0, 1)]);
+
+        // Should update existing book with series info
+        expect(firestoreModule.updateFamilyBook).toHaveBeenCalledWith(
+          'family-123',
+          'existing-book-id',
+          {
+            seriesId: 'series-1',
+            seriesOrder: 2,
+          }
+        );
+      });
+
+      it('should use provided starting order', async () => {
+        const { result } = renderHook(() => useBookOperations());
+
+        await result.current.addBooksToSeries('series-1', mockGoogleBooks, 10);
+
+        expect(firestoreModule.findOrCreateFamilyBook).toHaveBeenCalledWith(
+          'family-123',
+          expect.objectContaining({
+            seriesOrder: 10,
+          })
+        );
+        expect(firestoreModule.findOrCreateFamilyBook).toHaveBeenCalledWith(
+          'family-123',
+          expect.objectContaining({
+            seriesOrder: 11,
+          })
+        );
+      });
+
+      it('should normalize genres from Google Books categories', async () => {
+        const { result } = renderHook(() => useBookOperations());
+
+        await result.current.addBooksToSeries('series-1', [mockGoogleBooks[0]]);
+
+        expect(firestoreModule.findOrCreateFamilyBook).toHaveBeenCalledWith(
+          'family-123',
+          expect.objectContaining({
+            genres: expect.arrayContaining(['fiction', 'fantasy']),
+          })
+        );
+      });
+
+      it('should handle books without categories', async () => {
+        const bookWithoutCategories = {
+          ...mockGoogleBooks[0],
+          categories: undefined,
+        };
+
+        const { result } = renderHook(() => useBookOperations());
+
+        await result.current.addBooksToSeries('series-1', [bookWithoutCategories]);
+
+        expect(firestoreModule.findOrCreateFamilyBook).toHaveBeenCalledWith(
+          'family-123',
+          expect.objectContaining({
+            genres: undefined,
+          })
+        );
+      });
+
+      it('should throw error when no family is loaded', async () => {
+        useFamilyStore.setState({ family: null });
+
+        const { result } = renderHook(() => useBookOperations());
+
+        await expect(
+          result.current.addBooksToSeries('series-1', mockGoogleBooks)
+        ).rejects.toThrow('No family loaded');
+      });
+
+      it('should throw error when no member is selected', async () => {
+        useFamilyStore.setState({ selectedMemberId: null });
+
+        const { result } = renderHook(() => useBookOperations());
+
+        await expect(
+          result.current.addBooksToSeries('series-1', mockGoogleBooks)
+        ).rejects.toThrow('No member selected');
       });
     });
   });

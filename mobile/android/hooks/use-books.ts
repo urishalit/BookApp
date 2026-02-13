@@ -12,8 +12,12 @@ import {
   updateFamilyBook,
   getSeriesBooksFromCatalog,
   addSeriesToMemberLibrary,
+  createFamilyBook,
+  updateSeries,
 } from '@/lib/firestore';
+import { normalizeApiCategories } from '@/constants/genres';
 import type { MemberBook, MemberLibraryEntry, FamilyBook, BookStatus } from '@/types/models';
+import type { GoogleBookData } from '@/lib/google-books';
 
 /**
  * Get the next status in the cycle: to-read → reading → read → to-read
@@ -345,6 +349,62 @@ export function useBookOperations() {
     [family]
   );
 
+  /**
+   * Add multiple books to a series from Google Books search results.
+   * Books are added to the family catalog (not member's library).
+   * Series totalBooks count is updated automatically.
+   */
+  const addBooksToSeries = useCallback(
+    async (seriesId: string, books: GoogleBookData[], startingOrder?: number): Promise<void> => {
+      if (!family) throw new Error('No family loaded');
+      if (!selectedMemberId) throw new Error('No member selected');
+
+      // Get existing books in series to determine starting order
+      const existingBooks = await getSeriesBooksFromCatalog(family.id, seriesId);
+      const maxOrder = existingBooks.reduce((max, book) => {
+        return Math.max(max, book.seriesOrder || 0);
+      }, 0);
+      
+      const startOrder = startingOrder ?? maxOrder + 1;
+
+      // Create family book entries for each selected book
+      const bookPromises = books.map(async (book, index) => {
+        const genres = book.categories ? normalizeApiCategories(book.categories) : undefined;
+        
+        // Check if book already exists in family catalog
+        const { bookId, isNew } = await findOrCreateFamilyBook(family.id, {
+          title: book.title,
+          author: book.author,
+          thumbnailUrl: book.thumbnailUrl,
+          googleBooksId: book.googleBooksId,
+          genres,
+          seriesId,
+          seriesOrder: startOrder + index,
+          addedBy: selectedMemberId,
+        });
+
+        // If book already existed, update its series info
+        if (!isNew) {
+          await updateFamilyBook(family.id, bookId, {
+            seriesId,
+            seriesOrder: startOrder + index,
+          });
+        }
+
+        return bookId;
+      });
+
+      await Promise.all(bookPromises);
+
+      // Update series totalBooks count
+      const allBooksInSeries = await getSeriesBooksFromCatalog(family.id, seriesId);
+      await updateSeries(family.id, seriesId, {
+        totalBooks: allBooksInSeries.length,
+      });
+    },
+    [family, selectedMemberId]
+  );
+
   return {
     addBook,
     updateBookStatus,
@@ -355,5 +415,6 @@ export function useBookOperations() {
     addSeriesToLibrary,
     getSeriesBooks,
     updateSeriesBooksGenres,
+    addBooksToSeries,
   };
 }

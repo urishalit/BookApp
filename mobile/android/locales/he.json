@@ -259,5 +259,15 @@
     "addingFor": "מוסיף ספר עבור: {{name}}",
     "adding": "מוסיף...",
     "addToLibrary": "הוסף לספרייה"
+  },
+  "seriesBookSearch": {
+    "searchBooks": "חפש והוסף ספרים",
+    "searchPlaceholder": "חפש לפי כותרת, מחבר או ISBN...",
+    "addBooks": "הוסף {{count}} ספרים",
+    "addOneBook": "הוסף ספר 1",
+    "noResults": "לא נמצאו ספרים",
+    "selected": "{{count}} נבחרו",
+    "alreadyInSeries": "כבר בסדרה",
+    "failedToAdd": "הוספת הספרים לסדרה נכשלה"
   }
 }

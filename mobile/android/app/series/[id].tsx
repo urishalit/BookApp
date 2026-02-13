@@ -17,6 +17,7 @@ import { BookCard } from '@/components/book-card';
 import { SeriesProgress } from '@/components/series-progress';
 import { GenreBadge } from '@/components/genre-badge';
 import { GenrePicker } from '@/components/genre-picker';
+import { SeriesBookSearchModal } from '@/components/series-book-search-modal';
 import { useSeriesDetail, useSeriesOperations } from '@/hooks/use-series';
 import { useBookOperations, getNextStatus } from '@/hooks/use-books';
 import { useThemeColor } from '@/hooks/use-theme-color';
@@ -29,7 +30,7 @@ export default function SeriesDetailScreen() {
   const router = useRouter();
   const { series, books, isLoading } = useSeriesDetail(id);
   const { editSeries, removeSeries } = useSeriesOperations();
-  const { addOrUpdateBookStatus, updateSeriesBooksGenres } = useBookOperations();
+  const { addOrUpdateBookStatus, updateSeriesBooksGenres, addBooksToSeries } = useBookOperations();
 
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState('');
@@ -37,6 +38,7 @@ export default function SeriesDetailScreen() {
   const [isSaving, setIsSaving] = useState(false);
   const [isEditingGenres, setIsEditingGenres] = useState(false);
   const [localGenres, setLocalGenres] = useState<string[]>([]);
+  const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
 
   const primaryColor = useThemeColor({ light: '#8B5A2B', dark: '#D4A574' }, 'text');
   const cardBg = useThemeColor({ light: '#FFFFFF', dark: '#1E2730' }, 'background');
@@ -187,6 +189,29 @@ export default function SeriesDetailScreen() {
     },
     [id, updateSeriesBooksGenres, t]
   );
+
+  const handleBooksAdded = useCallback(
+    async (selectedBooks: any[]) => {
+      if (!id) return;
+
+      try {
+        await addBooksToSeries(id, selectedBooks);
+        // Books will be automatically updated via the real-time listener
+      } catch (error) {
+        console.error('Failed to add books to series:', error);
+        Alert.alert(t('common.error'), t('seriesBookSearch.failedToAdd'));
+        throw error; // Re-throw so modal can handle it
+      }
+    },
+    [id, addBooksToSeries, t]
+  );
+
+  // Get existing Google Books IDs to prevent duplicates
+  const existingBookIds = useMemo(() => {
+    return books
+      .map((book) => book.googleBooksId)
+      .filter((id): id is string => !!id);
+  }, [books]);
 
   if (isLoading) {
     return (
@@ -349,6 +374,15 @@ export default function SeriesDetailScreen() {
         <ThemedText type="subtitle" style={styles.sectionTitle}>
           {t('seriesDetail.booksSection', { count: books.length })}
         </ThemedText>
+        <Pressable
+          style={[styles.searchBooksButton, { borderColor: primaryColor }]}
+          onPress={() => setIsSearchModalOpen(true)}
+        >
+          <IconSymbol name="magnifyingglass" size={16} color={primaryColor} />
+          <ThemedText style={[styles.searchBooksText, { color: primaryColor }]}>
+            {t('seriesBookSearch.searchBooks')}
+          </ThemedText>
+        </Pressable>
       </View>
 
       {/* Empty State for Books */}
@@ -389,6 +423,12 @@ export default function SeriesDetailScreen() {
         ListFooterComponent={renderFooter}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
+      />
+      <SeriesBookSearchModal
+        visible={isSearchModalOpen}
+        onClose={() => setIsSearchModalOpen(false)}
+        onBooksSelected={handleBooksAdded}
+        existingBookIds={existingBookIds}
       />
     </ThemedView>
   );
@@ -537,9 +577,27 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 8,
     paddingBottom: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
   sectionTitle: {
     fontSize: 18,
+    flex: 1,
+  },
+  searchBooksButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderStyle: 'dashed',
+  },
+  searchBooksText: {
+    fontSize: 14,
+    fontWeight: '500',
   },
   emptyBooks: {
     margin: 16,

@@ -259,5 +259,15 @@
     "addingFor": "Adding book for: {{name}}",
     "adding": "Adding...",
     "addToLibrary": "Add to Library"
+  },
+  "seriesBookSearch": {
+    "searchBooks": "Search & Add Books",
+    "searchPlaceholder": "Search by title, author, or ISBN...",
+    "addBooks": "Add {{count}} Books",
+    "addOneBook": "Add 1 Book",
+    "noResults": "No books found",
+    "selected": "{{count}} selected",
+    "alreadyInSeries": "Already in series",
+    "failedToAdd": "Failed to add books to series"
   }
 }

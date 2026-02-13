@@ -104,7 +104,7 @@ service firebase.storage {
 ## 5. Add Android App
 
 1. In Firebase Console, click the **Android** icon to add an Android app
-2. Enter package name: `com.familybookkeeper.app`
+2. Enter package name: `com.booksapp.android` (must match app.json)
 3. Enter app nickname: `Family Book Keeper`
 4. **SHA-1 Certificate** (Required for Google Sign-In):
    - For debug builds, run:
@@ -121,7 +121,7 @@ service firebase.storage {
 ## 6. Add iOS App
 
 1. In Firebase Console, click the **iOS** icon to add an iOS app
-2. Enter bundle ID: `com.familybookkeeper.app`
+2. Enter bundle ID: `com.booksapp.android` (must match app.json)
 3. Enter app nickname: `Family Book Keeper`
 4. Click "Register app"
 5. Download `GoogleService-Info.plist`
@@ -227,9 +227,31 @@ app/
 Make sure `google-services.json` (Android) or `GoogleService-Info.plist` (iOS) is in the project root.
 
 ### Google Sign-In Error: DEVELOPER_ERROR (Android)
-- Ensure SHA-1 is correctly added to Firebase Console
-- Make sure you're using the correct Web Client ID (not Android Client ID)
-- Run `cd android && ./gradlew signingReport` to get the correct SHA-1
+
+**Cause:** The SHA-1 fingerprint of the signing key doesn't match what's in Firebase. EAS builds use a different keystore than your local debug build.
+
+**Fix for EAS-built apps (APK installed on phone):**
+
+1. Get the SHA-1 from your EAS keystore:
+   ```bash
+   cd mobile/android
+   npx eas credentials --platform android
+   ```
+2. Select your build profile (e.g. `preview` or `production`)
+3. Choose **"Keystore: Set up a new keystore"** or **"Keystore: View credentials"** — EAS will show the SHA-1 and SHA-256 fingerprints
+4. Copy the **SHA-1** value
+5. In [Firebase Console](https://console.firebase.google.com/) → your project → **Project settings** (gear icon) → **Your apps**
+6. Select your Android app (package `com.booksapp.android`)
+7. Click **"Add fingerprint"** and paste the SHA-1
+8. Rebuild the app if needed; existing installs will work after the fingerprint is added
+
+**Fix for local debug builds:**
+- Run `cd android && ./gradlew signingReport` to get the debug SHA-1
+- Add that SHA-1 to Firebase as above
+
+**Also verify:**
+- Web Client ID is correct in `.env` (`EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID`) — use the Web client, not Android client
+- Package name in Firebase matches `com.booksapp.android` (from app.json)
 
 ### Google Sign-In Error on iOS
 - Verify `REVERSED_CLIENT_ID` URL scheme is configured
