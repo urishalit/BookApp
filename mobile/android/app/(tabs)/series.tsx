@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   View,
   FlatList,
@@ -6,6 +6,7 @@ import {
   ActivityIndicator,
   Pressable,
   Alert,
+  TextInput,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -17,6 +18,7 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useSeries, useSeriesOperations, SeriesWithProgress } from '@/hooks/use-series';
 import { useFamily } from '@/hooks/use-family';
 import { useThemeColor } from '@/hooks/use-theme-color';
+import { filterSeries, type LibraryTab } from '@/lib/series-filter-utils';
 
 export default function SeriesScreen() {
   const { t } = useTranslation();
@@ -25,9 +27,41 @@ export default function SeriesScreen() {
   const { series, isLoading, error, totalSeries } = useSeries();
   const { removeSeries, addSeriesToLibrary } = useSeriesOperations();
   const [addingSeriesId, setAddingSeriesId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<LibraryTab>('inLibrary');
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const displayedSeries = useMemo(() => {
+    const trimmedQuery = searchQuery.trim().toLowerCase();
+    if (trimmedQuery) {
+      return series.filter((s) => s.name.toLowerCase().includes(trimmedQuery));
+    }
+    if (!selectedMemberId) {
+      return series;
+    }
+    return filterSeries(series, activeTab, searchQuery);
+  }, [series, activeTab, searchQuery, selectedMemberId]);
+
+  const inLibraryCount = useMemo(
+    () => series.filter((s) => s.isInLibrary).length,
+    [series]
+  );
+  const notInLibraryCount = useMemo(
+    () => series.filter((s) => !s.isInLibrary).length,
+    [series]
+  );
+  const completedInLibraryCount = useMemo(
+    () => series.filter((s) => s.isInLibrary && s.progressPercent === 100).length,
+    [series]
+  );
 
   const primaryColor = useThemeColor({ light: '#8B5A2B', dark: '#D4A574' }, 'text');
   const cardBg = useThemeColor({ light: '#FFFFFF', dark: '#1A2129' }, 'background');
+  const inputBg = useThemeColor({ light: '#F5F0EA', dark: '#1A2129' }, 'background');
+  const inputBorder = useThemeColor({ light: '#E5D4C0', dark: '#2D3748' }, 'text');
+  const placeholderColor = useThemeColor({ light: '#999999', dark: '#666666' }, 'text');
+  const textColor = useThemeColor({}, 'text');
+  const inactiveTabColor = useThemeColor({ light: '#999999', dark: '#666666' }, 'text');
+  const tabBorderColor = useThemeColor({ light: '#E5D4C0', dark: '#2D3748' }, 'background');
 
   const handleSeriesPress = useCallback(
     (item: SeriesWithProgress) => {
@@ -141,26 +175,69 @@ export default function SeriesScreen() {
       );
     }
 
-    return (
-      <View style={styles.emptyContainer}>
-        <View style={[styles.emptyIcon, { backgroundColor: cardBg }]}>
-          <IconSymbol name="books.vertical.fill" size={64} color={primaryColor} />
+    if (totalSeries === 0) {
+      return (
+        <View style={styles.emptyContainer}>
+          <View style={[styles.emptyIcon, { backgroundColor: cardBg }]}>
+            <IconSymbol name="books.vertical.fill" size={64} color={primaryColor} />
+          </View>
+          <ThemedText type="title" style={styles.emptyTitle}>
+            {t('series.noSeriesYet')}
+          </ThemedText>
+          <ThemedText style={styles.emptyText}>
+            {t('series.noSeriesDescription')}
+          </ThemedText>
+          <Pressable
+            style={[styles.emptyButton, { backgroundColor: primaryColor }]}
+            onPress={handleAddSeries}
+          >
+            <IconSymbol name="plus" size={20} color="#FFFFFF" />
+            <ThemedText style={styles.emptyButtonText}>{t('series.createFirstSeries')}</ThemedText>
+          </Pressable>
         </View>
-        <ThemedText type="title" style={styles.emptyTitle}>
-          {t('series.noSeriesYet')}
-        </ThemedText>
-        <ThemedText style={styles.emptyText}>
-          {t('series.noSeriesDescription')}
-        </ThemedText>
-        <Pressable
-          style={[styles.emptyButton, { backgroundColor: primaryColor }]}
-          onPress={handleAddSeries}
-        >
-          <IconSymbol name="plus" size={20} color="#FFFFFF" />
-          <ThemedText style={styles.emptyButtonText}>{t('series.createFirstSeries')}</ThemedText>
-        </Pressable>
-      </View>
-    );
+      );
+    }
+
+    if (searchQuery.trim()) {
+      return (
+        <View style={styles.emptyContainer}>
+          <View style={[styles.emptyIcon, { backgroundColor: cardBg }]}>
+            <IconSymbol name="magnifyingglass" size={64} color={primaryColor} />
+          </View>
+          <ThemedText type="title" style={styles.emptyTitle}>
+            {t('series.noSearchResults')}
+          </ThemedText>
+        </View>
+      );
+    }
+
+    if (activeTab === 'inLibrary' && inLibraryCount === 0) {
+      return (
+        <View style={styles.emptyContainer}>
+          <View style={[styles.emptyIcon, { backgroundColor: cardBg }]}>
+            <IconSymbol name="books.vertical.fill" size={64} color={primaryColor} />
+          </View>
+          <ThemedText type="title" style={styles.emptyTitle}>
+            {t('series.noSeriesInLibraryYet')}
+          </ThemedText>
+        </View>
+      );
+    }
+
+    if (activeTab === 'notInLibrary' && notInLibraryCount === 0) {
+      return (
+        <View style={styles.emptyContainer}>
+          <View style={[styles.emptyIcon, { backgroundColor: cardBg }]}>
+            <IconSymbol name="checkmark.circle.fill" size={64} color={primaryColor} />
+          </View>
+          <ThemedText type="title" style={styles.emptyTitle}>
+            {t('series.allSeriesInLibrary')}
+          </ThemedText>
+        </View>
+      );
+    }
+
+    return null;
   };
 
   if (isLoading && series.length === 0 && family) {
@@ -213,19 +290,111 @@ export default function SeriesScreen() {
       {family && totalSeries > 0 && (
         <View style={styles.statsBar}>
           <ThemedText style={styles.statsText}>
-            {t('series.series', { count: totalSeries })} •{' '}
-            {series.filter((s) => s.progressPercent === 100).length} {t('series.completed')}
+            {searchQuery.trim()
+              ? t('series.series', { count: displayedSeries.length })
+              : activeTab === 'inLibrary'
+                ? `${t('series.series', { count: displayedSeries.length })} • ${completedInLibraryCount} ${t('series.completed')}`
+                : t('series.series', { count: displayedSeries.length })}
           </ThemedText>
+        </View>
+      )}
+
+      {/* Search Bar */}
+      {family && (
+        <View style={styles.searchContainer}>
+          <View
+            style={[
+              styles.searchInputContainer,
+              { backgroundColor: inputBg, borderColor: inputBorder },
+            ]}
+          >
+            <IconSymbol name="magnifyingglass" size={20} color={placeholderColor} />
+            <TextInput
+              style={[styles.searchInput, { color: textColor }]}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              placeholder={t('series.searchPlaceholder')}
+              placeholderTextColor={placeholderColor}
+              autoCorrect={false}
+              returnKeyType="search"
+              clearButtonMode="while-editing"
+            />
+            {searchQuery.length > 0 && (
+              <Pressable onPress={() => setSearchQuery('')} hitSlop={8}>
+                <IconSymbol name="xmark.circle.fill" size={20} color={placeholderColor} />
+              </Pressable>
+            )}
+          </View>
+        </View>
+      )}
+
+      {/* Tabs */}
+      {family && selectedMemberId && (
+        <View style={[styles.tabContainer, { borderColor: tabBorderColor }]}>
+          <Pressable
+            style={[
+              styles.tab,
+              activeTab === 'inLibrary' && { borderBottomColor: primaryColor, borderBottomWidth: 2 },
+            ]}
+            onPress={() => setActiveTab('inLibrary')}
+          >
+            <ThemedText
+              style={[
+                styles.tabLabel,
+                { color: activeTab === 'inLibrary' ? primaryColor : inactiveTabColor },
+                activeTab === 'inLibrary' && styles.tabLabelActive,
+              ]}
+            >
+              {t('series.inLibrary')}
+            </ThemedText>
+            {inLibraryCount > 0 && (
+              <View
+                style={[
+                  styles.tabBadge,
+                  { backgroundColor: activeTab === 'inLibrary' ? primaryColor : inactiveTabColor },
+                ]}
+              >
+                <ThemedText style={styles.tabBadgeText}>{inLibraryCount}</ThemedText>
+              </View>
+            )}
+          </Pressable>
+          <Pressable
+            style={[
+              styles.tab,
+              activeTab === 'notInLibrary' && { borderBottomColor: primaryColor, borderBottomWidth: 2 },
+            ]}
+            onPress={() => setActiveTab('notInLibrary')}
+          >
+            <ThemedText
+              style={[
+                styles.tabLabel,
+                { color: activeTab === 'notInLibrary' ? primaryColor : inactiveTabColor },
+                activeTab === 'notInLibrary' && styles.tabLabelActive,
+              ]}
+            >
+              {t('series.notInLibrary')}
+            </ThemedText>
+            {notInLibraryCount > 0 && (
+              <View
+                style={[
+                  styles.tabBadge,
+                  { backgroundColor: activeTab === 'notInLibrary' ? primaryColor : inactiveTabColor },
+                ]}
+              >
+                <ThemedText style={styles.tabBadgeText}>{notInLibraryCount}</ThemedText>
+              </View>
+            )}
+          </Pressable>
         </View>
       )}
 
       {/* Series List */}
       <FlatList
-        data={series}
+        data={displayedSeries}
         renderItem={renderSeries}
         keyExtractor={(item) => item.id}
         contentContainerStyle={
-          series.length === 0 ? styles.emptyList : styles.list
+          displayedSeries.length === 0 ? styles.emptyList : styles.list
         }
         ListEmptyComponent={renderEmptyState}
         showsVerticalScrollIndicator={false}
@@ -303,6 +472,58 @@ const styles = StyleSheet.create({
   statsText: {
     fontSize: 14,
     opacity: 0.6,
+  },
+  searchContainer: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  searchInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    gap: 10,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 16,
+    padding: 0,
+  },
+  tabContainer: {
+    flexDirection: 'row',
+    marginHorizontal: 16,
+    marginBottom: 8,
+    borderBottomWidth: 1,
+  },
+  tab: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    gap: 6,
+  },
+  tabLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  tabLabelActive: {
+    fontWeight: '600',
+  },
+  tabBadge: {
+    minWidth: 20,
+    height: 20,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 6,
+  },
+  tabBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '600',
   },
   list: {
     paddingTop: 8,

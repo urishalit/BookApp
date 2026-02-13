@@ -137,6 +137,12 @@
   },
   "series": {
     "title": "Series",
+    "inLibrary": "In library",
+    "notInLibrary": "Not in library",
+    "noSeriesInLibraryYet": "No series in your library yet",
+    "allSeriesInLibrary": "All your series are in your library",
+    "noSearchResults": "No series match your search",
+    "searchPlaceholder": "Search series...",
     "series_one": "{{count}} series",
     "series_other": "{{count}} series",
     "completed": "completed",

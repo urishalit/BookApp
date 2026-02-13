@@ -137,6 +137,12 @@
   },
   "series": {
     "title": "סדרות",
+    "inLibrary": "בספרייה",
+    "notInLibrary": "לא בספרייה",
+    "noSeriesInLibraryYet": "אין עדיין סדרות בספרייה שלך",
+    "allSeriesInLibrary": "כל הסדרות שלך בספרייה",
+    "noSearchResults": "לא נמצאו סדרות התואמות את החיפוש",
+    "searchPlaceholder": "חפש סדרות...",
     "series_one": "סדרה {{count}}",
     "series_other": "{{count}} סדרות",
     "completed": "הושלמו",
