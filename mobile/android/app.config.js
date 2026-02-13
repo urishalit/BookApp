@@ -8,6 +8,11 @@ module.exports = {
   ...config,
   expo: {
     ...config.expo,
+    plugins: [
+      ...(Array.isArray(config.expo.plugins) ? config.expo.plugins : []),
+      'expo-build-properties',
+      './plugins/withGradleMemory',
+    ].filter(Boolean),
     updates: {
       ...config.expo.updates,
       enabled: isProduction,
