@@ -1,0 +1,22 @@
+const config = require('./app.json');
+
+// Disable expo-updates in development to prevent emulator/device crashes on startup.
+// EAS Build runs with NODE_ENV=production, so updates stay enabled for production/preview builds.
+const isProduction = process.env.NODE_ENV === 'production';
+
+module.exports = {
+  ...config,
+  expo: {
+    ...config.expo,
+    updates: {
+      ...config.expo.updates,
+      enabled: isProduction,
+      checkAutomatically: isProduction ? 'ON_LOAD' : 'NEVER',
+    },
+    // Fix duplicate RECORD_AUDIO permission
+    android: {
+      ...config.expo.android,
+      permissions: ['android.permission.RECORD_AUDIO'],
+    },
+  },
+};

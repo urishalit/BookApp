@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useLayoutEffect } from 'react';
 import {
   View,
   StyleSheet,
@@ -6,8 +6,9 @@ import {
   Pressable,
   Alert,
   ActivityIndicator,
+  TextInput,
 } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter, useNavigation } from 'expo-router';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { useTranslation } from 'react-i18next';
@@ -31,6 +32,7 @@ export default function BookDetailScreen() {
   const { t } = useTranslation();
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const navigation = useNavigation();
   const { allBooks, isLoading } = useBooks();
   const { updateBookStatus, updateBookMetadata, removeBook } = useBookOperations();
   const { series } = useSeries();
@@ -38,15 +40,20 @@ export default function BookDetailScreen() {
   const selectedMemberId = useFamilyStore((s) => s.selectedMemberId);
 
   const [isUpdating, setIsUpdating] = useState(false);
-  const [isEditingSeries, setIsEditingSeries] = useState(false);
-  const [isEditingGenres, setIsEditingGenres] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
   const [localGenres, setLocalGenres] = useState<string[]>([]);
+  const [localTitle, setLocalTitle] = useState('');
+  const [localAuthor, setLocalAuthor] = useState('');
   const [isUploadingCover, setIsUploadingCover] = useState(false);
 
   const primaryColor = useThemeColor({ light: '#8B5A2B', dark: '#D4A574' }, 'text');
   const cardBg = useThemeColor({ light: '#FFFFFF', dark: '#1E2730' }, 'background');
   const borderColor = useThemeColor({ light: '#E5D4C0', dark: '#2D3748' }, 'text');
+  const inputBg = useThemeColor({ light: '#F5F0EA', dark: '#1A2129' }, 'background');
+  const inputBorder = useThemeColor({ light: '#E5D4C0', dark: '#2D3748' }, 'text');
   const subtitleColor = useThemeColor({ light: '#666666', dark: '#999999' }, 'text');
+  const textColor = useThemeColor({}, 'text');
+  const placeholderColor = useThemeColor({ light: '#999999', dark: '#666666' }, 'text');
 
   // Find the book from the current member's library
   const book = allBooks.find((b) => b.id === id) as MemberBook | undefined;
@@ -57,6 +64,71 @@ export default function BookDetailScreen() {
       setLocalGenres(book.genres);
     }
   }, [book?.genres]);
+
+  // Sync local title/author with book
+  useEffect(() => {
+    if (book) {
+      setLocalTitle(book.title);
+      setLocalAuthor(book.author);
+    }
+  }, [book?.id, book?.title, book?.author]);
+
+  const saveTitleAuthor = useCallback(
+    async (newTitle: string, newAuthor: string) => {
+      if (!book || !newTitle.trim() || !newAuthor.trim()) return;
+      if (newTitle.trim() === book.title && newAuthor.trim() === book.author) return;
+      setIsUpdating(true);
+      try {
+        await updateBookMetadata(book.id, {
+          title: newTitle.trim(),
+          author: newAuthor.trim(),
+        });
+        setLocalTitle(newTitle.trim());
+        setLocalAuthor(newAuthor.trim());
+      } catch (error) {
+        console.error('Failed to update book details:', error);
+        Alert.alert(t('common.error'), t('bookDetail.failedToUpdate'));
+      } finally {
+        setIsUpdating(false);
+      }
+    },
+    [book, updateBookMetadata, t]
+  );
+
+  // Debounced auto-save for title/author when in edit mode
+  useEffect(() => {
+    if (!isEditMode || !book) return;
+    const timer = setTimeout(() => {
+      if (!localTitle.trim() || !localAuthor.trim()) return;
+      if (localTitle === book.title && localAuthor === book.author) return;
+      saveTitleAuthor(localTitle, localAuthor);
+    }, 600);
+    return () => clearTimeout(timer);
+  }, [localTitle, localAuthor, isEditMode, book, saveTitleAuthor]);
+
+  // Header pencil icon toggles edit mode
+  const toggleEditMode = useCallback(() => {
+    setIsEditMode((v) => {
+      const next = !v;
+      if (!next && book) {
+        if (!localTitle.trim() || !localAuthor.trim()) {
+          setLocalTitle(book.title);
+          setLocalAuthor(book.author);
+        }
+      }
+      return next;
+    });
+  }, [book, localTitle, localAuthor]);
+
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <Pressable onPress={toggleEditMode} hitSlop={12} style={styles.headerButton}>
+          <IconSymbol name="pencil" size={22} color={primaryColor} />
+        </Pressable>
+      ),
+    });
+  }, [navigation, primaryColor, toggleEditMode]);
 
   const handleStatusChange = useCallback(
     async (newStatus: BookStatus) => {
@@ -152,12 +224,10 @@ export default function BookDetailScreen() {
 
       setIsUpdating(true);
       try {
-        // Update the family book's series info
         await updateBookMetadata(book.id, { 
           seriesId: seriesId || undefined, 
           seriesOrder: seriesOrder || undefined
         });
-        setIsEditingSeries(false);
       } catch (error) {
         console.error('Failed to update series:', error);
         Alert.alert(t('common.error'), t('books.failedToUpdateStatus'));
@@ -245,51 +315,84 @@ export default function BookDetailScreen() {
       >
         {/* Cover Image */}
         <View style={styles.coverSection}>
-          <Pressable 
-            style={[styles.coverContainer, { borderColor }]}
-            onPress={handleEditCover}
-            disabled={isUploadingCover}
-          >
-            <Image
-              source={{ uri: book.thumbnailUrl || PLACEHOLDER_COVER }}
-              style={styles.coverImage}
-              contentFit="cover"
-              transition={300}
-            />
-            {isUploadingCover ? (
-              <View style={styles.coverOverlay}>
-                <ActivityIndicator color="#FFFFFF" size="large" />
-              </View>
-            ) : (
-              <View style={styles.editCoverButton}>
-                <IconSymbol name="pencil" size={16} color="#FFFFFF" />
-              </View>
-            )}
-          </Pressable>
+          {isEditMode ? (
+            <Pressable 
+              style={[styles.coverContainer, { borderColor }]}
+              onPress={handleEditCover}
+              disabled={isUploadingCover}
+            >
+              <Image
+                source={{ uri: book.thumbnailUrl || PLACEHOLDER_COVER }}
+                style={styles.coverImage}
+                contentFit="cover"
+                transition={300}
+              />
+              {isUploadingCover ? (
+                <View style={styles.coverOverlay}>
+                  <ActivityIndicator color="#FFFFFF" size="large" />
+                </View>
+              ) : (
+                <View style={styles.editCoverButton}>
+                  <IconSymbol name="pencil" size={16} color="#FFFFFF" />
+                </View>
+              )}
+            </Pressable>
+          ) : (
+            <View style={[styles.coverContainer, { borderColor }]}>
+              <Image
+                source={{ uri: book.thumbnailUrl || PLACEHOLDER_COVER }}
+                style={styles.coverImage}
+                contentFit="cover"
+                transition={300}
+              />
+            </View>
+          )}
         </View>
 
         {/* Book Info */}
         <View style={[styles.infoSection, { backgroundColor: cardBg, borderColor }]}>
-          <ThemedText type="title" style={styles.title}>
-            {book.title}
-          </ThemedText>
-          <ThemedText style={[styles.author, { color: subtitleColor }]}>
-            {t('bookDetail.byAuthor', { author: book.author })}
-          </ThemedText>
+          {isEditMode ? (
+            <View style={styles.infoEditFields}>
+              <TextInput
+                style={[
+                  styles.infoInput,
+                  styles.infoInputTitle,
+                  { backgroundColor: inputBg, borderColor: inputBorder, color: textColor },
+                ]}
+                value={localTitle}
+                onChangeText={setLocalTitle}
+                placeholder={t('bookDetail.titlePlaceholder')}
+                placeholderTextColor={placeholderColor}
+                autoCapitalize="words"
+              />
+              <TextInput
+                style={[
+                  styles.infoInput,
+                  { backgroundColor: inputBg, borderColor: inputBorder, color: textColor },
+                ]}
+                value={localAuthor}
+                onChangeText={setLocalAuthor}
+                placeholder={t('bookDetail.authorPlaceholder')}
+                placeholderTextColor={placeholderColor}
+                autoCapitalize="words"
+              />
+            </View>
+          ) : (
+            <>
+              <ThemedText type="title" style={styles.title}>
+                {localTitle || book.title}
+              </ThemedText>
+              <ThemedText style={[styles.author, { color: subtitleColor }]}>
+                {t('bookDetail.byAuthor', { author: localAuthor || book.author })}
+              </ThemedText>
+            </>
+          )}
         </View>
 
         {/* Genres Section */}
         <View style={[styles.genresSection, { backgroundColor: cardBg, borderColor }]}>
-          <View style={styles.sectionHeader}>
-            <ThemedText style={styles.sectionTitle}>{t('genrePicker.title')}</ThemedText>
-            <Pressable onPress={() => setIsEditingGenres(!isEditingGenres)}>
-              <ThemedText style={[styles.editLink, { color: primaryColor }]}>
-                {isEditingGenres ? t('common.done') : t('common.edit')}
-              </ThemedText>
-            </Pressable>
-          </View>
-          
-          {isEditingGenres ? (
+          <ThemedText style={styles.sectionTitle}>{t('genrePicker.title')}</ThemedText>
+          {isEditMode ? (
             <GenrePicker
               selectedGenres={localGenres}
               onGenresChange={handleGenresChange}
@@ -313,16 +416,8 @@ export default function BookDetailScreen() {
 
         {/* Series Section */}
         <View style={[styles.seriesSection, { backgroundColor: cardBg, borderColor }]}>
-          <View style={styles.seriesHeader}>
-            <ThemedText style={styles.sectionTitle}>{t('bookDetail.series')}</ThemedText>
-            <Pressable onPress={() => setIsEditingSeries(!isEditingSeries)}>
-              <ThemedText style={[styles.editLink, { color: primaryColor }]}>
-                {isEditingSeries ? t('common.done') : t('common.edit')}
-              </ThemedText>
-            </Pressable>
-          </View>
-          
-          {isEditingSeries ? (
+          <ThemedText style={styles.sectionTitle}>{t('bookDetail.series')}</ThemedText>
+          {isEditMode ? (
             <SeriesPicker
               selectedSeriesId={book.seriesId}
               onSeriesSelect={(seriesId, seriesOrder) => {
@@ -489,6 +584,19 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     gap: 8,
   },
+  infoEditFields: {
+    gap: 12,
+  },
+  infoInput: {
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 14,
+    fontSize: 16,
+  },
+  infoInputTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+  },
   title: {
     fontSize: 24,
     textAlign: 'center',
@@ -598,6 +706,9 @@ const styles = StyleSheet.create({
     color: '#E57373',
     fontSize: 16,
     fontWeight: '600',
+  },
+  headerButton: {
+    padding: 8,
   },
   button: {
     paddingHorizontal: 24,

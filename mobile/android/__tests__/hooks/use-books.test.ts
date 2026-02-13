@@ -343,6 +343,21 @@ describe('useBooks Hook', () => {
       );
     });
 
+    it('should update book title and author', async () => {
+      const { result } = renderHook(() => useBookOperations());
+
+      await result.current.updateBookMetadata('book-1', {
+        title: 'Updated Title',
+        author: 'Updated Author',
+      });
+
+      expect(firestoreModule.updateFamilyBook).toHaveBeenCalledWith(
+        'family-123',
+        'book-1',
+        { title: 'Updated Title', author: 'Updated Author' }
+      );
+    });
+
     it('should add series to library', async () => {
       const { result } = renderHook(() => useBookOperations());
 

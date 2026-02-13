@@ -91,7 +91,13 @@
     "notInSeries": "Not part of a series",
     "editCover": "Edit Cover",
     "chooseCoverMethod": "Choose a method to update the cover",
-    "failedToUpdateCover": "Failed to update cover"
+    "failedToUpdateCover": "Failed to update cover",
+    "editTitleAuthor": "Edit title & author",
+    "titlePlaceholder": "Book title",
+    "authorPlaceholder": "Author",
+    "titleRequired": "Title is required",
+    "authorRequired": "Author is required",
+    "failedToUpdate": "Failed to update book details"
   },
   "addBook": {
     "title": "Add Book",

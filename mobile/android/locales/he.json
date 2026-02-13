@@ -91,7 +91,13 @@
     "notInSeries": "לא חלק מסדרה",
     "editCover": "ערוך עטיפה",
     "chooseCoverMethod": "בחר שיטה לעדכון העטיפה",
-    "failedToUpdateCover": "עדכון העטיפה נכשל"
+    "failedToUpdateCover": "עדכון העטיפה נכשל",
+    "editTitleAuthor": "ערוך כותרת ומחבר",
+    "titlePlaceholder": "כותרת הספר",
+    "authorPlaceholder": "מחבר",
+    "titleRequired": "נדרשת כותרת",
+    "authorRequired": "נדרש מחבר",
+    "failedToUpdate": "עדכון פרטי הספר נכשל"
   },
   "addBook": {
     "title": "הוסף ספר",
