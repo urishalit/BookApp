@@ -34,7 +34,6 @@ export default function SeriesDetailScreen() {
 
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState('');
-  const [editTotalBooks, setEditTotalBooks] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [isEditingGenres, setIsEditingGenres] = useState(false);
   const [localGenres, setLocalGenres] = useState<string[]>([]);
@@ -113,7 +112,6 @@ export default function SeriesDetailScreen() {
   const handleStartEdit = useCallback(() => {
     if (!series) return;
     setEditName(series.name);
-    setEditTotalBooks(series.totalBooks.toString());
     setIsEditing(true);
   }, [series]);
 
@@ -126,18 +124,9 @@ export default function SeriesDetailScreen() {
       return;
     }
 
-    const bookCount = parseInt(editTotalBooks, 10);
-    if (isNaN(bookCount) || bookCount < 1) {
-      Alert.alert(t('seriesDetail.invalidCount'), t('seriesDetail.invalidCountMessage'));
-      return;
-    }
-
     setIsSaving(true);
     try {
-      await editSeries(id, {
-        name: trimmedName,
-        totalBooks: bookCount,
-      });
+      await editSeries(id, { name: trimmedName });
       setIsEditing(false);
     } catch (error) {
       console.error('Failed to update series:', error);
@@ -145,7 +134,7 @@ export default function SeriesDetailScreen() {
     } finally {
       setIsSaving(false);
     }
-  }, [series, id, editName, editTotalBooks, editSeries]);
+  }, [series, id, editName, editSeries]);
 
   const handleDelete = useCallback(() => {
     if (!series || !id) return;
@@ -269,19 +258,8 @@ export default function SeriesDetailScreen() {
           </ThemedText>
         )}
 
-        {/* Total Books */}
-        {isEditing ? (
-          <View style={styles.editRow}>
-            <ThemedText style={styles.editLabel}>{t('seriesDetail.totalBooks')}</ThemedText>
-            <TextInput
-              style={[styles.numberInput, { backgroundColor: inputBg, borderColor, color: textColor }]}
-              value={editTotalBooks}
-              onChangeText={setEditTotalBooks}
-              keyboardType="number-pad"
-              maxLength={3}
-            />
-          </View>
-        ) : (
+        {/* Total Books (read-only, auto-derived from max seriesOrder) */}
+        {!isEditing && (
           <ThemedText style={[styles.bookCount, { color: subtitleColor }]}>
             {t('seriesDetail.booksInSeries', { count: series.totalBooks })}
           </ThemedText>

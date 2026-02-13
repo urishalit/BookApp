@@ -426,6 +426,29 @@ export async function deleteSeries(
   await seriesCollection(familyId).doc(seriesId).delete();
 }
 
+/**
+ * Compute totalBooks from books: max(seriesOrder) or 0 if no books.
+ * Extracted for testability.
+ */
+export function computeSeriesTotalBooksFromBooks(
+  books: { seriesOrder?: number }[]
+): number {
+  return books.length === 0 ? 0 : Math.max(...books.map((b) => b.seriesOrder ?? 0));
+}
+
+/**
+ * Recompute totalBooks for a series from the max(seriesOrder) of its books.
+ * totalBooks = max(seriesOrder) over all books in the series, or 0 if no books.
+ */
+export async function recomputeSeriesTotalBooks(
+  familyId: string,
+  seriesId: string
+): Promise<void> {
+  const books = await getSeriesBooksFromCatalog(familyId, seriesId);
+  const totalBooks = computeSeriesTotalBooksFromBooks(books);
+  await updateSeries(familyId, seriesId, { totalBooks });
+}
+
 // ============================================================================
 // Real-time listeners
 // ============================================================================

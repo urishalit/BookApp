@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { View, StyleSheet, Pressable, Modal, FlatList, TextInput, Alert, ActivityIndicator } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { ThemedText } from '@/components/themed-text';
@@ -24,7 +24,14 @@ export function SeriesPicker({
   const [isCreating, setIsCreating] = useState(false);
   const [newSeriesName, setNewSeriesName] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const { series } = useSeries();
+
+  const filteredSeries = useMemo(() => {
+    const trimmed = searchQuery.trim().toLowerCase();
+    if (!trimmed) return series;
+    return series.filter((s) => s.name.toLowerCase().includes(trimmed));
+  }, [series, searchQuery]);
   const { addSeries } = useSeriesOperations();
 
   const primaryColor = useThemeColor({ light: '#8B5A2B', dark: '#D4A574' }, 'text');
@@ -33,6 +40,8 @@ export function SeriesPicker({
   const subtitleColor = useThemeColor({ light: '#666666', dark: '#999999' }, 'text');
   const modalBg = useThemeColor({ light: '#F5F5F5', dark: '#151718' }, 'background');
   const inputBg = useThemeColor({ light: '#FFFFFF', dark: '#1A2129' }, 'background');
+  const inputBorder = useThemeColor({ light: '#E5D4C0', dark: '#2D3748' }, 'text');
+  const placeholderColor = useThemeColor({ light: '#999999', dark: '#666666' }, 'text');
   const textColor = useThemeColor({}, 'text');
 
   const selectedSeries = series.find((s) => s.id === selectedSeriesId);
@@ -172,9 +181,31 @@ export function SeriesPicker({
             <View style={styles.modalClose} />
           </View>
 
+          {/* Search Bar */}
+          <View style={styles.searchContainer}>
+            <View style={[styles.searchInputContainer, { backgroundColor: inputBg, borderColor: inputBorder }]}>
+              <IconSymbol name="magnifyingglass" size={20} color={placeholderColor} />
+              <TextInput
+                style={[styles.searchInput, { color: textColor }]}
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                placeholder={t('seriesPicker.searchPlaceholder')}
+                placeholderTextColor={placeholderColor}
+                autoCorrect={false}
+                returnKeyType="search"
+                clearButtonMode="while-editing"
+              />
+              {searchQuery.length > 0 && (
+                <Pressable onPress={() => setSearchQuery('')} hitSlop={8}>
+                  <IconSymbol name="xmark.circle.fill" size={20} color={placeholderColor} />
+                </Pressable>
+              )}
+            </View>
+          </View>
+
           {/* Series List */}
           <FlatList
-            data={series}
+            data={filteredSeries}
             renderItem={renderSeriesItem}
             keyExtractor={(item) => item.id}
             contentContainerStyle={styles.modalList}
@@ -347,6 +378,24 @@ const styles = StyleSheet.create({
   },
   modalTitle: {
     fontSize: 18,
+  },
+  searchContainer: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  searchInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    gap: 10,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 16,
+    padding: 0,
   },
   modalList: {
     padding: 16,

@@ -21,6 +21,7 @@ import {
   getSeriesById,
   updateSeries,
   deleteSeries,
+  recomputeSeriesTotalBooks,
 } from '../../lib/firestore';
 import firestore from '@react-native-firebase/firestore';
 
@@ -234,6 +235,12 @@ describe('Firestore Helpers', () => {
 
     it('should delete a series', async () => {
       await deleteSeries('family-123', 'series-123');
+      
+      expect(firestore().collection).toHaveBeenCalled();
+    });
+
+    it('should recompute series totalBooks', async () => {
+      await recomputeSeriesTotalBooks('family-123', 'series-123');
       
       expect(firestore().collection).toHaveBeenCalled();
     });

@@ -5,17 +5,21 @@ import * as firestore from '@/lib/firestore';
 import type { Series, MemberBook, MemberLibraryEntry, FamilyBook, Family } from '@/types/models';
 
 // Mock the firestore module
-jest.mock('@/lib/firestore', () => ({
-  createSeries: jest.fn(),
-  updateSeries: jest.fn(),
-  deleteSeries: jest.fn(),
-  getSeriesById: jest.fn(),
-  onSeriesSnapshot: jest.fn(),
-  onMemberLibrarySnapshot: jest.fn(),
-  onFamilyBooksSnapshot: jest.fn(),
-  getSeriesBooksFromCatalog: jest.fn(),
-  addSeriesToMemberLibrary: jest.fn(),
-}));
+jest.mock('@/lib/firestore', () => {
+  const actual = jest.requireActual<typeof import('@/lib/firestore')>('@/lib/firestore');
+  return {
+    ...actual,
+    createSeries: jest.fn(),
+    updateSeries: jest.fn(),
+    deleteSeries: jest.fn(),
+    getSeriesById: jest.fn(),
+    onSeriesSnapshot: jest.fn(),
+    onMemberLibrarySnapshot: jest.fn(),
+    onFamilyBooksSnapshot: jest.fn(),
+    getSeriesBooksFromCatalog: jest.fn(),
+    addSeriesToMemberLibrary: jest.fn(),
+  };
+});
 
 // Mock the family store
 jest.mock('@/stores/family-store', () => ({
@@ -90,7 +94,9 @@ describe('use-series hooks', () => {
       expect(harryPotterSeries).toBeDefined();
       expect(harryPotterSeries?.booksOwned).toBe(3);
       expect(harryPotterSeries?.booksRead).toBe(1);
-      expect(harryPotterSeries?.progressPercent).toBe(14); // 1/7 = ~14%
+      // totalBooks is computed from family books (max seriesOrder=3), so 1/3 = 33%
+      expect(harryPotterSeries?.progressPercent).toBe(33);
+      expect(harryPotterSeries?.totalBooks).toBe(3);
       expect(harryPotterSeries?.isInLibrary).toBe(true);
     });
 

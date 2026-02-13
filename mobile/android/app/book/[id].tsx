@@ -245,10 +245,14 @@ export default function BookDetailScreen() {
 
       setIsUpdating(true);
       try {
-        await updateBookMetadata(book.id, { 
-          seriesId: seriesId || undefined, 
-          seriesOrder: seriesOrder || undefined
-        });
+        await updateBookMetadata(
+          book.id,
+          {
+            seriesId: seriesId || undefined,
+            seriesOrder: seriesOrder || undefined,
+          },
+          { previousSeriesId: book.seriesId }
+        );
       } catch (error) {
         console.error('Failed to update series:', error);
         Alert.alert(t('common.error'), t('books.failedToUpdateStatus'));

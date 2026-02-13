@@ -26,7 +26,6 @@ export default function CreateSeriesScreen() {
   const { addSeries } = useSeriesOperations();
 
   const [name, setName] = useState('');
-  const [totalBooks, setTotalBooks] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const primaryColor = useThemeColor({ light: '#8B5A2B', dark: '#D4A574' }, 'text');
@@ -46,17 +45,11 @@ export default function CreateSeriesScreen() {
       return;
     }
 
-    const bookCount = parseInt(totalBooks, 10);
-    if (isNaN(bookCount) || bookCount < 1) {
-      Alert.alert(t('common.error'), t('createSeries.nameRequired'));
-      return;
-    }
-
     setIsSubmitting(true);
     try {
       await addSeries({
         name: trimmedName,
-        totalBooks: bookCount,
+        totalBooks: 0,
       });
       router.back();
     } catch (error) {
@@ -65,9 +58,9 @@ export default function CreateSeriesScreen() {
     } finally {
       setIsSubmitting(false);
     }
-  }, [name, totalBooks, addSeries, router, t]);
+  }, [name, addSeries, router, t]);
 
-  const canSubmit = name.trim().length > 0 && parseInt(totalBooks, 10) >= 1 && !isSubmitting;
+  const canSubmit = name.trim().length > 0 && !isSubmitting;
 
   if (!family) {
     return (
@@ -137,29 +130,6 @@ export default function CreateSeriesScreen() {
               autoCapitalize="words"
               autoCorrect={false}
               maxLength={100}
-            />
-          </View>
-
-          {/* Total Books Input */}
-          <View style={styles.inputSection}>
-            <ThemedText type="subtitle" style={styles.label}>
-              {t('createSeries.totalBooks')} *
-            </ThemedText>
-            <TextInput
-              style={[
-                styles.input,
-                {
-                  backgroundColor: inputBg,
-                  borderColor: inputBorder,
-                  color: textColor,
-                },
-              ]}
-              value={totalBooks}
-              onChangeText={setTotalBooks}
-              placeholder={t('createSeries.totalBooksPlaceholder')}
-              placeholderTextColor={placeholderColor}
-              keyboardType="number-pad"
-              maxLength={3}
             />
           </View>
         </ScrollView>

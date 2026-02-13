@@ -201,6 +201,7 @@
     "booksOwned": "({{count}} בבעלות)"
   },
   "seriesPicker": {
+    "searchPlaceholder": "חפש סדרות...",
     "selectSeries": "בחר סדרה",
     "notInSeries": "לא חלק מסדרה",
     "bookNumber": "ספר # בסדרה:",

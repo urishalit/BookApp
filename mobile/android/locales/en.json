@@ -201,6 +201,7 @@
     "booksOwned": "({{count}} owned)"
   },
   "seriesPicker": {
+    "searchPlaceholder": "Search series...",
     "selectSeries": "Select Series",
     "notInSeries": "Not part of a series",
     "bookNumber": "Book # in series:",

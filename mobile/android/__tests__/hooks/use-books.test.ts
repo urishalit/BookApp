@@ -19,7 +19,7 @@ jest.mock('../../lib/firestore', () => ({
   getSeriesBooksFromCatalog: jest.fn(() => Promise.resolve([])),
   addSeriesToMemberLibrary: jest.fn(() => Promise.resolve({ added: 3, skipped: 0 })),
   createFamilyBook: jest.fn(() => Promise.resolve('new-book-id')),
-  updateSeries: jest.fn(() => Promise.resolve()),
+  recomputeSeriesTotalBooks: jest.fn(() => Promise.resolve()),
 }));
 
 import { useBooks, useBookOperations, useBooksListener, getNextStatus } from '../../hooks/use-books';
@@ -360,6 +360,23 @@ describe('useBooks Hook', () => {
       );
     });
 
+    it('should call recomputeSeriesTotalBooks when adding book with seriesId', async () => {
+      const { result } = renderHook(() => useBookOperations());
+
+      await result.current.addBook({
+        title: 'New Book',
+        author: 'New Author',
+        status: 'to-read',
+        seriesId: 'series-hp',
+        seriesOrder: 1,
+      });
+
+      expect(firestoreModule.recomputeSeriesTotalBooks).toHaveBeenCalledWith(
+        'family-123',
+        'series-hp'
+      );
+    });
+
     it('should update book status', async () => {
       const { result } = renderHook(() => useBookOperations());
 
@@ -397,6 +414,25 @@ describe('useBooks Hook', () => {
         'family-123',
         'book-1',
         { seriesId: 'series-hp', seriesOrder: 2 }
+      );
+    });
+
+    it('should call recomputeSeriesTotalBooks for old and new series when changing series', async () => {
+      const { result } = renderHook(() => useBookOperations());
+
+      await result.current.updateBookMetadata(
+        'book-1',
+        { seriesId: 'series-lotr', seriesOrder: 1 },
+        { previousSeriesId: 'series-hp' }
+      );
+
+      expect(firestoreModule.recomputeSeriesTotalBooks).toHaveBeenCalledWith(
+        'family-123',
+        'series-hp'
+      );
+      expect(firestoreModule.recomputeSeriesTotalBooks).toHaveBeenCalledWith(
+        'family-123',
+        'series-lotr'
       );
     });
 
@@ -645,7 +681,7 @@ describe('useBooks Hook', () => {
         (firestoreModule.getSeriesBooksFromCatalog as jest.Mock).mockResolvedValue(mockExistingBooks);
         (firestoreModule.findOrCreateFamilyBook as jest.Mock).mockResolvedValue({ bookId: 'new-book-id', isNew: true });
         (firestoreModule.updateFamilyBook as jest.Mock).mockResolvedValue(undefined);
-        (firestoreModule.updateSeries as jest.Mock).mockResolvedValue(undefined);
+        (firestoreModule.recomputeSeriesTotalBooks as jest.Mock).mockResolvedValue(undefined);
       });
 
       it('should add books to series with correct order', async () => {
@@ -684,12 +720,11 @@ describe('useBooks Hook', () => {
           })
         );
 
-        // Should update series totalBooks count (called twice: once to get existing, once to update)
-        expect(firestoreModule.getSeriesBooksFromCatalog).toHaveBeenCalledTimes(2);
-        expect(firestoreModule.updateSeries).toHaveBeenCalledWith(
+        // Should get existing books and then recompute series totalBooks
+        expect(firestoreModule.getSeriesBooksFromCatalog).toHaveBeenCalledWith('family-123', 'series-1');
+        expect(firestoreModule.recomputeSeriesTotalBooks).toHaveBeenCalledWith(
           'family-123',
-          'series-1',
-          { totalBooks: 3 } // 1 existing + 2 new
+          'series-1'
         );
       });
 

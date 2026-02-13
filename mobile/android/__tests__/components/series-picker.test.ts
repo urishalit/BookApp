@@ -187,6 +187,49 @@ describe('SeriesPicker Component Logic', () => {
     });
   });
 
+  describe('series search filter', () => {
+    /**
+     * Helper that mimics SeriesPicker's search filter logic:
+     * Filter series by name (case-insensitive partial match)
+     */
+    function filterSeriesByName(
+      seriesList: SeriesWithProgress[],
+      searchQuery: string
+    ): SeriesWithProgress[] {
+      const trimmed = searchQuery.trim().toLowerCase();
+      if (!trimmed) return seriesList;
+      return seriesList.filter((s) => s.name.toLowerCase().includes(trimmed));
+    }
+
+    it('should return all series when search is empty', () => {
+      const result = filterSeriesByName(mockSeries, '');
+      expect(result).toHaveLength(3);
+    });
+
+    it('should filter by partial name match', () => {
+      const result = filterSeriesByName(mockSeries, 'Harry');
+      expect(result).toHaveLength(1);
+      expect(result[0].name).toBe('Harry Potter');
+    });
+
+    it('should be case insensitive when searching', () => {
+      const result = filterSeriesByName(mockSeries, 'LORD');
+      expect(result).toHaveLength(1);
+      expect(result[0].name).toBe('Lord of the Rings');
+    });
+
+    it('should trim whitespace from search query', () => {
+      const result = filterSeriesByName(mockSeries, '  Empty  ');
+      expect(result).toHaveLength(1);
+      expect(result[0].name).toBe('Empty Series');
+    });
+
+    it('should return empty array when no series match', () => {
+      const result = filterSeriesByName(mockSeries, 'nonexistent');
+      expect(result).toHaveLength(0);
+    });
+  });
+
   describe('create new series', () => {
     /**
      * Helper that mimics the handleCreateSeries logic

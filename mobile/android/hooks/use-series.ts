@@ -9,6 +9,7 @@ import {
   getSeriesBooksFromCatalog,
   addSeriesToMemberLibrary,
   onFamilyBooksSnapshot,
+  computeSeriesTotalBooksFromBooks,
 } from '@/lib/firestore';
 import { useBooksListener } from '@/hooks/use-books';
 import type { Series, MemberBook, FamilyBook, CreateSeries, SeriesBookDisplay } from '@/types/models';
@@ -68,22 +69,37 @@ export interface SeriesWithProgress extends Series {
  * Series are shared across family, but progress is calculated per member
  */
 export function useSeries() {
+  const family = useFamilyStore((s) => s.family);
   const { series, isLoading, error } = useSeriesListener();
   const { books } = useBooksListener();
-  
+
+  const [familyBooks, setFamilyBooks] = useState<FamilyBook[]>([]);
+  useEffect(() => {
+    if (!family) {
+      setFamilyBooks([]);
+      return;
+    }
+    const unsubscribe = onFamilyBooksSnapshot(family.id, setFamilyBooks);
+    return unsubscribe;
+  }, [family]);
+
   // Calculate series with progress for selected member
+  // totalBooks is computed from family books (max seriesOrder) for correct display
   const seriesWithProgress: SeriesWithProgress[] = useMemo(() => {
     return series.map((s) => {
+      const familyBooksInSeries = familyBooks.filter((b) => b.seriesId === s.id);
+      const totalBooks = computeSeriesTotalBooksFromBooks(familyBooksInSeries);
+
       // Only count books from the selected member's library
       const booksInSeries = books.filter((book) => book.seriesId === s.id);
       const booksRead = booksInSeries.filter((book) => book.status === 'read').length;
       const booksOwned = booksInSeries.length;
-      const progressPercent = s.totalBooks > 0 
-        ? Math.round((booksRead / s.totalBooks) * 100) 
-        : 0;
+      const progressPercent =
+        totalBooks > 0 ? Math.round((booksRead / totalBooks) * 100) : 0;
 
       return {
         ...s,
+        totalBooks,
         booksInSeries,
         booksRead,
         booksOwned,
@@ -91,7 +107,7 @@ export function useSeries() {
         isInLibrary: booksOwned > 0,
       };
     });
-  }, [series, books]);
+  }, [series, books, familyBooks]);
 
   return {
     series: seriesWithProgress,
@@ -220,8 +236,11 @@ export function useSeriesDetail(seriesId: string | undefined) {
   
   const seriesDetail = useMemo(() => {
     if (!seriesId) return null;
-    return series.find((s) => s.id === seriesId) ?? null;
-  }, [series, seriesId]);
+    const found = series.find((s) => s.id === seriesId) ?? null;
+    if (!found) return null;
+    const derivedTotalBooks = computeSeriesTotalBooksFromBooks(familyBooksInSeries);
+    return { ...found, totalBooks: derivedTotalBooks };
+  }, [series, seriesId, familyBooksInSeries]);
 
   // Create a map of member's library entries by book ID for quick lookup
   const memberLibraryMap = useMemo(() => {

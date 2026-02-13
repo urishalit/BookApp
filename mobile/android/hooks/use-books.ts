@@ -13,7 +13,7 @@ import {
   getSeriesBooksFromCatalog,
   addSeriesToMemberLibrary,
   createFamilyBook,
-  updateSeries,
+  recomputeSeriesTotalBooks,
 } from '@/lib/firestore';
 import { normalizeApiCategories } from '@/constants/genres';
 import type { MemberBook, MemberLibraryEntry, FamilyBook, BookStatus } from '@/types/models';
@@ -226,6 +226,10 @@ export function useBookOperations() {
       // Add to member's library
       const libraryEntryId = await addToMemberLibrary(family.id, effectiveMemberId, bookId, status);
 
+      if (data.seriesId) {
+        await recomputeSeriesTotalBooks(family.id, data.seriesId);
+      }
+
       return { bookId, libraryEntryId };
     },
     [family, selectedMemberId]
@@ -290,13 +294,28 @@ export function useBookOperations() {
   );
 
   /**
-   * Update a family book's metadata (e.g., add to series)
+   * Update a family book's metadata (e.g., add to series).
+   * When changing seriesId, pass previousSeriesId to trigger totalBooks recompute for both old and new series.
    */
   const updateBookMetadata = useCallback(
-    async (bookId: string, data: Partial<FamilyBook>) => {
+    async (
+      bookId: string,
+      data: Partial<FamilyBook>,
+      options?: { previousSeriesId?: string }
+    ) => {
       if (!family) throw new Error('No family loaded');
 
       await updateFamilyBook(family.id, bookId, data);
+
+      const previousSeriesId = options?.previousSeriesId;
+      const newSeriesId = data.seriesId;
+
+      if (previousSeriesId && previousSeriesId !== newSeriesId) {
+        await recomputeSeriesTotalBooks(family.id, previousSeriesId);
+      }
+      if (newSeriesId) {
+        await recomputeSeriesTotalBooks(family.id, newSeriesId);
+      }
     },
     [family]
   );
@@ -410,11 +429,7 @@ export function useBookOperations() {
 
       await Promise.all(bookPromises);
 
-      // Update series totalBooks count
-      const allBooksInSeries = await getSeriesBooksFromCatalog(family.id, seriesId);
-      await updateSeries(family.id, seriesId, {
-        totalBooks: allBooksInSeries.length,
-      });
+      await recomputeSeriesTotalBooks(family.id, seriesId);
     },
     [family, selectedMemberId]
   );
