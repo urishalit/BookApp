@@ -111,9 +111,9 @@ export default function AddFromSearchScreen() {
           </ThemedText>
           <Pressable
             style={[styles.button, { backgroundColor: primaryColor }]}
-            onPress={() => router.push('/(tabs)/family')}
+            onPress={() => router.push('/family-management')}
           >
-            <ThemedText style={styles.buttonText}>{t('common.goToFamily')}</ThemedText>
+            <ThemedText style={styles.buttonText}>{t('family.addFirstMember')}</ThemedText>
           </Pressable>
         </View>
       </ThemedView>

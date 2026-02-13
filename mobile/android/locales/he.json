@@ -171,6 +171,7 @@
   "settings": {
     "title": "הגדרות",
     "language": "שפה",
+    "familyManagement": "ניהול משפחה",
     "signOut": "התנתק",
     "signOutConfirm": "האם אתה בטוח שברצונך להתנתק?",
     "rtlRestartRequired": "נדרש הפעלה מחדש",
@@ -275,5 +276,14 @@
     "selected": "{{count}} נבחרו",
     "alreadyInSeries": "כבר בסדרה",
     "failedToAdd": "הוספת הספרים לסדרה נכשלה"
+  },
+  "memberPicker": {
+    "selectMember": "בחר בן משפחה",
+    "noMembersYet": "אין עדיין בני משפחה",
+    "addInSettings": "הוסף בני משפחה בניהול המשפחה.",
+    "addFirstMember": "הוסף בן משפחה ראשון"
+  },
+  "familyManagement": {
+    "title": "ניהול משפחה"
   }
 }

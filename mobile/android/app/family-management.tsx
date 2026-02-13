@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useCallback } from 'react';
 import {
   View,
   FlatList,
@@ -11,14 +11,13 @@ import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { MemberCard } from '@/components/member-card';
 import { MemberAvatar } from '@/components/member-avatar';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useFamily, useMemberOperations } from '@/hooks/use-family';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import type { Member } from '@/types/models';
 
-export default function FamilyScreen() {
+export default function FamilyManagementScreen() {
   const { t } = useTranslation();
   const router = useRouter();
   const {
@@ -30,17 +29,11 @@ export default function FamilyScreen() {
     error,
   } = useFamily();
   const { removeMember } = useMemberOperations();
-  
-  const primaryColor = useThemeColor({ light: '#8B5A2B', dark: '#D4A574' }, 'text');
-  const backgroundColor = useThemeColor({}, 'background');
-  const cardBg = useThemeColor({ light: '#FFFFFF', dark: '#1A2129' }, 'background');
 
-  const handleSelectMember = useCallback(
-    (memberId: string) => {
-      setSelectedMemberId(memberId === selectedMemberId ? null : memberId);
-    },
-    [selectedMemberId, setSelectedMemberId]
-  );
+  const primaryColor = useThemeColor({ light: '#8B5A2B', dark: '#D4A574' }, 'text');
+  const textColor = useThemeColor({}, 'text');
+  const cardBg = useThemeColor({ light: '#FFFFFF', dark: '#1A2129' }, 'background');
+  const borderColor = useThemeColor({ light: '#E5D4C0', dark: '#2D3748' }, 'text');
 
   const handleEditMember = useCallback(
     (member: Member) => {
@@ -65,9 +58,9 @@ export default function FamilyScreen() {
             onPress: async () => {
               try {
                 await removeMember(member.id, member.avatarUrl);
-                // Clear selection if deleted member was selected
                 if (selectedMemberId === member.id) {
-                  setSelectedMemberId(null);
+                  const remaining = members.filter((m) => m.id !== member.id);
+                  setSelectedMemberId(remaining[0]?.id ?? null);
                 }
               } catch (err) {
                 Alert.alert(t('common.error'), t('family.failedToDeleteMember'));
@@ -77,7 +70,7 @@ export default function FamilyScreen() {
         ]
       );
     },
-    [removeMember, selectedMemberId, setSelectedMemberId, t]
+    [removeMember, selectedMemberId, members, setSelectedMemberId, t]
   );
 
   const handleAddMember = useCallback(() => {
@@ -86,14 +79,33 @@ export default function FamilyScreen() {
 
   const renderMember = useCallback(
     ({ item }: { item: Member }) => (
-      <MemberCard
-        member={item}
-        isSelected={item.id === selectedMemberId}
-        onPress={() => handleSelectMember(item.id)}
-        onLongPress={() => handleEditMember(item)}
-      />
+      <View
+        style={[styles.memberRow, { backgroundColor: cardBg, borderColor }]}
+      >
+        <MemberAvatar
+          name={item.name}
+          color={item.color}
+          avatarUrl={item.avatarUrl}
+          size="medium"
+        />
+        <ThemedText style={styles.memberName} numberOfLines={1}>
+          {item.name}
+        </ThemedText>
+        <Pressable
+          style={styles.actionButton}
+          onPress={() => handleEditMember(item)}
+        >
+          <IconSymbol name="pencil" size={20} color={primaryColor} />
+        </Pressable>
+        <Pressable
+          style={styles.actionButton}
+          onPress={() => handleDeleteMember(item)}
+        >
+          <IconSymbol name="trash" size={20} color="#E57373" />
+        </Pressable>
+      </View>
     ),
-    [selectedMemberId, handleSelectMember, handleEditMember]
+    [cardBg, borderColor, primaryColor, handleEditMember, handleDeleteMember]
   );
 
   const renderEmptyState = () => (
@@ -137,60 +149,25 @@ export default function FamilyScreen() {
 
   return (
     <ThemedView style={styles.container}>
-      {/* Header */}
       <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          <ThemedText type="title" style={styles.headerTitle}>
-            {family?.name ?? t('family.title')}
-          </ThemedText>
-          <ThemedText style={styles.memberCount}>
-            {t('family.member', { count: members.length })}
-          </ThemedText>
-        </View>
-        <Pressable
-          style={styles.settingsButton}
-          onPress={() => router.push('/settings')}
-        >
-          <IconSymbol name="gearshape.fill" size={24} color={primaryColor} />
+        <Pressable onPress={() => router.back()} style={styles.backButton}>
+          <IconSymbol name="chevron.left" size={24} color={textColor} />
         </Pressable>
+        <ThemedText type="title" style={styles.headerTitle}>
+          {t('familyManagement.title')}
+        </ThemedText>
+        <View style={styles.headerSpacer} />
       </View>
 
-      {/* Selected Member Quick Actions */}
-      {selectedMemberId && (
-        <View style={[styles.selectedBar, { backgroundColor: cardBg }]}>
-          {(() => {
-            const member = members.find((m) => m.id === selectedMemberId);
-            if (!member) return null;
-            return (
-              <>
-                <MemberAvatar
-                  name={member.name}
-                  color={member.color}
-                  avatarUrl={member.avatarUrl}
-                  size="small"
-                />
-                <ThemedText style={styles.selectedName} numberOfLines={1}>
-                  {member.name}
-                </ThemedText>
-                <Pressable
-                  style={styles.actionButton}
-                  onPress={() => handleEditMember(member)}
-                >
-                  <IconSymbol name="pencil" size={20} color={primaryColor} />
-                </Pressable>
-                <Pressable
-                  style={styles.actionButton}
-                  onPress={() => handleDeleteMember(member)}
-                >
-                  <IconSymbol name="trash" size={20} color="#E57373" />
-                </Pressable>
-              </>
-            );
-          })()}
-        </View>
-      )}
+      <View style={styles.subheader}>
+        <ThemedText style={styles.familyName}>
+          {family?.name ?? t('family.title')}
+        </ThemedText>
+        <ThemedText style={styles.memberCount}>
+          {t('family.member', { count: members.length })}
+        </ThemedText>
+      </View>
 
-      {/* Members List */}
       <FlatList
         data={members}
         renderItem={renderMember}
@@ -202,7 +179,6 @@ export default function FamilyScreen() {
         showsVerticalScrollIndicator={false}
       />
 
-      {/* Floating Add Button */}
       <Pressable
         style={[styles.fab, { backgroundColor: primaryColor }]}
         onPress={handleAddMember}
@@ -241,25 +217,58 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     paddingTop: 60,
     paddingBottom: 16,
   },
-  headerLeft: {
-    flex: 1,
+  backButton: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   headerTitle: {
-    fontSize: 28,
+    fontSize: 20,
+  },
+  headerSpacer: {
+    width: 40,
+  },
+  subheader: {
+    paddingHorizontal: 20,
+    paddingBottom: 16,
+  },
+  familyName: {
+    fontSize: 18,
+    fontWeight: '600',
   },
   memberCount: {
     opacity: 0.6,
     marginTop: 2,
   },
-  settingsButton: {
-    width: 44,
-    height: 44,
-    justifyContent: 'center',
+  list: {
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 100,
+  },
+  emptyList: {
+    flex: 1,
+  },
+  memberRow: {
+    flexDirection: 'row',
     alignItems: 'center',
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 2,
+    marginBottom: 12,
+    gap: 12,
+  },
+  memberName: {
+    flex: 1,
+    fontSize: 18,
+    fontWeight: '500',
+  },
+  actionButton: {
+    padding: 8,
   },
   fab: {
     position: 'absolute',
@@ -275,35 +284,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 6,
     elevation: 8,
-  },
-  selectedBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginHorizontal: 16,
-    marginBottom: 12,
-    padding: 12,
-    borderRadius: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  selectedName: {
-    flex: 1,
-    marginLeft: 12,
-    fontWeight: '600',
-  },
-  actionButton: {
-    padding: 8,
-    marginLeft: 4,
-  },
-  list: {
-    paddingTop: 8,
-    paddingBottom: 100, // Extra padding for FAB
-  },
-  emptyList: {
-    flex: 1,
   },
   emptyContainer: {
     flex: 1,
@@ -344,4 +324,3 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
 });
-

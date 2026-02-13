@@ -14,6 +14,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { MemberPicker } from '@/components/member-picker';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { useBookSearch } from '@/hooks/use-book-search';
@@ -177,12 +178,23 @@ export default function SearchScreen() {
     <ThemedView style={[styles.container, { paddingTop: insets.top }]}>
       {/* Header */}
       <View style={styles.header}>
-        <ThemedText type="title" style={styles.title}>{t('search.title')}</ThemedText>
-        {selectedMember && (
-          <ThemedText style={[styles.memberInfo, { color: placeholderColor }]}>
-            {t('search.addingFor', { name: selectedMember.name })}
-          </ThemedText>
-        )}
+        <View style={styles.headerLeft}>
+          <ThemedText type="title" style={styles.title}>{t('search.title')}</ThemedText>
+          <View style={styles.memberRow}>
+            <MemberPicker />
+            {selectedMember && (
+              <ThemedText style={[styles.memberInfo, { color: placeholderColor }]}>
+                {t('search.addingFor', { name: selectedMember.name })}
+              </ThemedText>
+            )}
+          </View>
+        </View>
+        <Pressable
+          style={styles.settingsButton}
+          onPress={() => router.push('/settings')}
+        >
+          <IconSymbol name="gearshape.fill" size={24} color={accentColor} />
+        </Pressable>
       </View>
 
       {/* Search Input */}
@@ -219,9 +231,9 @@ export default function SearchScreen() {
           <ThemedText style={styles.stateText}>{t('search.selectMemberFirst')}</ThemedText>
           <Pressable
             style={[styles.retryButton, { backgroundColor: accentColor }]}
-            onPress={() => router.push('/(tabs)/family')}
+            onPress={() => router.push('/family-management')}
           >
-            <ThemedText style={styles.retryButtonText}>{t('common.goToFamily')}</ThemedText>
+            <ThemedText style={styles.retryButtonText}>{t('family.addFirstMember')}</ThemedText>
           </Pressable>
         </View>
       ) : results.length > 0 ? (
@@ -245,16 +257,33 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingTop: 16,
     paddingBottom: 8,
   },
+  headerLeft: {
+    flex: 1,
+  },
   title: {
     fontSize: 28,
   },
+  memberRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 4,
+  },
   memberInfo: {
     fontSize: 14,
-    marginTop: 4,
+  },
+  settingsButton: {
+    width: 44,
+    height: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   searchContainer: {
     paddingHorizontal: 16,

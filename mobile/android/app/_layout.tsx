@@ -82,6 +82,8 @@ function AuthNavigator() {
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       <Stack.Screen name="member" options={{ headerShown: false }} />
       <Stack.Screen name="book" options={{ headerShown: false }} />
+      <Stack.Screen name="family-management" options={{ headerShown: false }} />
+      <Stack.Screen name="settings" options={{ headerShown: false }} />
       <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
     </Stack>
   );

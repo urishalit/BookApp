@@ -72,6 +72,20 @@ export default function SettingsScreen() {
           <LanguageSwitcher />
         </View>
 
+        {/* Family Management Section */}
+        <View style={styles.section}>
+          <Pressable
+            style={[styles.familyManagementButton, { backgroundColor: cardBg, borderColor }]}
+            onPress={() => router.push('/family-management')}
+          >
+            <IconSymbol name="person.3.fill" size={22} color={primaryColor} />
+            <ThemedText style={styles.familyManagementText}>
+              {t('settings.familyManagement')}
+            </ThemedText>
+            <IconSymbol name="chevron.right" size={18} color={primaryColor} />
+          </Pressable>
+        </View>
+
         {/* Sign Out Section */}
         <View style={styles.section}>
           <Pressable
@@ -122,6 +136,20 @@ const styles = StyleSheet.create({
   },
   section: {
     marginBottom: 32,
+  },
+  familyManagementButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  familyManagementText: {
+    flex: 1,
+    fontSize: 16,
+    fontWeight: '500',
   },
   signOutButton: {
     flexDirection: 'row',

@@ -13,7 +13,7 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { BookCard } from '@/components/book-card';
 import { SeriesRow } from '@/components/series-row';
-import { MemberAvatar } from '@/components/member-avatar';
+import { MemberPicker } from '@/components/member-picker';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useBooks, useBookOperations, getNextStatus } from '@/hooks/use-books';
 import { useSeries } from '@/hooks/use-series';
@@ -111,10 +111,6 @@ export default function BooksScreen() {
     router.push('/book/add');
   }, [router]);
 
-  const handleSelectMember = useCallback(() => {
-    router.push('/(tabs)/family');
-  }, [router]);
-
   const renderItem = useCallback(
     ({ item }: { item: BookListItem }) => {
       if (item.type === 'series') {
@@ -146,16 +142,17 @@ export default function BooksScreen() {
             <IconSymbol name="person.3.fill" size={64} color={primaryColor} />
           </View>
           <ThemedText type="title" style={styles.emptyTitle}>
-            {t('books.selectFamilyMember')}
+            {t('family.noMembersYet')}
           </ThemedText>
           <ThemedText style={styles.emptyText}>
-            {t('books.selectFamilyMemberDescription')}
+            {t('family.noMembersDescription')}
           </ThemedText>
           <Pressable
             style={[styles.emptyButton, { backgroundColor: primaryColor }]}
-            onPress={handleSelectMember}
+            onPress={() => router.push('/family-management')}
           >
-            <ThemedText style={styles.emptyButtonText}>{t('common.goToFamily')}</ThemedText>
+            <IconSymbol name="plus" size={20} color="#FFFFFF" />
+            <ThemedText style={styles.emptyButtonText}>{t('family.addFirstMember')}</ThemedText>
           </Pressable>
         </View>
       );
@@ -260,28 +257,24 @@ export default function BooksScreen() {
           <ThemedText type="title" style={styles.headerTitle}>
             {t('books.title')}
           </ThemedText>
-          {selectedMember && (
-            <Pressable style={styles.memberInfo} onPress={handleSelectMember}>
-              <MemberAvatar
-                name={selectedMember.name}
-                color={selectedMember.color}
-                avatarUrl={selectedMember.avatarUrl}
-                size="small"
-              />
-              <ThemedText style={styles.memberName} numberOfLines={1}>
-                {selectedMember.name}
-              </ThemedText>
+          <MemberPicker />
+        </View>
+        <View style={styles.headerRight}>
+          {selectedMemberId && (
+            <Pressable
+              style={[styles.addButton, { backgroundColor: primaryColor }]}
+              onPress={handleAddBook}
+            >
+              <IconSymbol name="plus" size={24} color="#FFFFFF" />
             </Pressable>
           )}
-        </View>
-        {selectedMemberId && (
           <Pressable
-            style={[styles.addButton, { backgroundColor: primaryColor }]}
-            onPress={handleAddBook}
+            style={styles.settingsButton}
+            onPress={() => router.push('/settings')}
           >
-            <IconSymbol name="plus" size={24} color="#FFFFFF" />
+            <IconSymbol name="gearshape.fill" size={24} color={primaryColor} />
           </Pressable>
-        )}
+        </View>
       </View>
 
       {/* Filter Tabs */}
@@ -338,17 +331,19 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: 8,
   },
-  headerTitle: {
-    fontSize: 28,
-  },
-  memberInfo: {
+  headerRight: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
   },
-  memberName: {
-    opacity: 0.7,
-    fontSize: 14,
+  settingsButton: {
+    width: 44,
+    height: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  headerTitle: {
+    fontSize: 28,
   },
   addButton: {
     width: 48,

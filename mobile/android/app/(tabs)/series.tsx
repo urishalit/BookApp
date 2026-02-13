@@ -12,7 +12,7 @@ import { useTranslation } from 'react-i18next';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { SeriesCard } from '@/components/series-card';
-import { MemberAvatar } from '@/components/member-avatar';
+import { MemberPicker } from '@/components/member-picker';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useSeries, useSeriesOperations, SeriesWithProgress } from '@/hooks/use-series';
 import { useFamily } from '@/hooks/use-family';
@@ -67,10 +67,6 @@ export default function SeriesScreen() {
     router.push('/series/create');
   }, [router]);
 
-  const handleSelectMember = useCallback(() => {
-    router.push('/(tabs)/family');
-  }, [router]);
-
   const handleAddToLibrary = useCallback(
     async (item: SeriesWithProgress) => {
       if (!selectedMemberId) {
@@ -79,7 +75,7 @@ export default function SeriesScreen() {
           t('series.selectMemberMessage'),
           [
             { text: t('common.cancel'), style: 'cancel' },
-            { text: t('common.goToFamily'), onPress: () => router.push('/(tabs)/family') },
+            { text: t('common.add'), onPress: () => router.push('/family-management') },
           ]
         );
         return;
@@ -137,9 +133,9 @@ export default function SeriesScreen() {
           </ThemedText>
           <Pressable
             style={[styles.emptyButton, { backgroundColor: primaryColor }]}
-            onPress={handleSelectMember}
+            onPress={() => router.push('/family-management')}
           >
-            <ThemedText style={styles.emptyButtonText}>{t('common.goToFamily')}</ThemedText>
+            <ThemedText style={styles.emptyButtonText}>{t('family.addFirstMember')}</ThemedText>
           </Pressable>
         </View>
       );
@@ -155,7 +151,6 @@ export default function SeriesScreen() {
         </ThemedText>
         <ThemedText style={styles.emptyText}>
           {t('series.noSeriesDescription')}
-          {!selectedMemberId && '\n\n' + t('series.selectMemberToSeeProgress')}
         </ThemedText>
         <Pressable
           style={[styles.emptyButton, { backgroundColor: primaryColor }]}
@@ -194,28 +189,24 @@ export default function SeriesScreen() {
           <ThemedText type="title" style={styles.headerTitle}>
             {t('series.title')}
           </ThemedText>
-          {selectedMember && (
-            <Pressable style={styles.memberInfo} onPress={handleSelectMember}>
-              <MemberAvatar
-                name={selectedMember.name}
-                color={selectedMember.color}
-                avatarUrl={selectedMember.avatarUrl}
-                size="small"
-              />
-              <ThemedText style={styles.memberName} numberOfLines={1}>
-                {selectedMember.name}
-              </ThemedText>
+          <MemberPicker />
+        </View>
+        <View style={styles.headerRight}>
+          {family && (
+            <Pressable
+              style={[styles.addButton, { backgroundColor: primaryColor }]}
+              onPress={handleAddSeries}
+            >
+              <IconSymbol name="plus" size={24} color="#FFFFFF" />
             </Pressable>
           )}
-        </View>
-        {family && (
           <Pressable
-            style={[styles.addButton, { backgroundColor: primaryColor }]}
-            onPress={handleAddSeries}
+            style={styles.settingsButton}
+            onPress={() => router.push('/settings')}
           >
-            <IconSymbol name="plus" size={24} color="#FFFFFF" />
+            <IconSymbol name="gearshape.fill" size={24} color={primaryColor} />
           </Pressable>
-        )}
+        </View>
       </View>
 
       {/* Stats Bar */}
@@ -279,17 +270,19 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: 8,
   },
-  headerTitle: {
-    fontSize: 28,
-  },
-  memberInfo: {
+  headerRight: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
   },
-  memberName: {
-    opacity: 0.7,
-    fontSize: 14,
+  settingsButton: {
+    width: 44,
+    height: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  headerTitle: {
+    fontSize: 28,
   },
   addButton: {
     width: 48,

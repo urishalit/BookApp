@@ -171,6 +171,7 @@
   "settings": {
     "title": "Settings",
     "language": "Language",
+    "familyManagement": "Family Management",
     "signOut": "Sign Out",
     "signOutConfirm": "Are you sure you want to sign out?",
     "rtlRestartRequired": "Restart Required",
@@ -275,5 +276,14 @@
     "selected": "{{count}} selected",
     "alreadyInSeries": "Already in series",
     "failedToAdd": "Failed to add books to series"
+  },
+  "memberPicker": {
+    "selectMember": "Select Member",
+    "noMembersYet": "No family members yet",
+    "addInSettings": "Add members in Family Management.",
+    "addFirstMember": "Add First Member"
+  },
+  "familyManagement": {
+    "title": "Family Management"
   }
 }

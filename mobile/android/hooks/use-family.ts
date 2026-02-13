@@ -1,4 +1,5 @@
 import { useEffect, useCallback } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFamilyStore } from '@/stores/family-store';
 import { useAuthStore } from '@/stores/auth-store';
 import {
@@ -11,6 +12,8 @@ import {
 } from '@/lib/firestore';
 import { uploadMemberAvatar, deleteFile } from '@/lib/storage';
 import type { Member } from '@/types/models';
+
+const SELECTED_MEMBER_KEY = (familyId: string) => `selectedMember_${familyId}`;
 
 /**
  * Hook to initialize and manage family data.
@@ -57,8 +60,26 @@ export function useFamilyListener() {
         setFamily(family);
 
         // Subscribe to members updates
-        unsubscribeMembers = onMembersSnapshot(family.id, (members) => {
+        unsubscribeMembers = onMembersSnapshot(family.id, async (members) => {
           setMembers(members);
+
+          // Restore or set selected member (always have one when members exist)
+          const { setSelectedMemberId: setSelected } = useFamilyStore.getState();
+          let idToSelect: string | null = null;
+
+          if (members.length > 0) {
+            try {
+              const stored = await AsyncStorage.getItem(SELECTED_MEMBER_KEY(family.id));
+              const isValidStored = stored && members.some((m) => m.id === stored);
+              idToSelect = isValidStored ? stored : members[0].id;
+            } catch {
+              idToSelect = members[0].id;
+            }
+            setSelected(idToSelect);
+            await AsyncStorage.setItem(SELECTED_MEMBER_KEY(family.id), idToSelect);
+          } else {
+            setSelected(null);
+          }
         });
       } catch (error) {
         const message =
@@ -185,7 +206,8 @@ export function useMemberOperations() {
 }
 
 /**
- * Hook for accessing family state
+ * Hook for accessing family state.
+ * setSelectedMemberId persists the selection to AsyncStorage.
  */
 export function useFamily() {
   const family = useFamilyStore((s) => s.family);
@@ -193,9 +215,24 @@ export function useFamily() {
   const isLoading = useFamilyStore((s) => s.isLoading);
   const error = useFamilyStore((s) => s.error);
   const selectedMemberId = useFamilyStore((s) => s.selectedMemberId);
-  const setSelectedMemberId = useFamilyStore((s) => s.setSelectedMemberId);
+  const setSelectedMemberIdStore = useFamilyStore((s) => s.setSelectedMemberId);
 
   const selectedMember = members.find((m) => m.id === selectedMemberId) ?? null;
+
+  const setSelectedMemberId = useCallback(
+    async (memberId: string | null) => {
+      setSelectedMemberIdStore(memberId);
+      const fam = useFamilyStore.getState().family;
+      if (fam?.id) {
+        try {
+          await AsyncStorage.setItem(SELECTED_MEMBER_KEY(fam.id), memberId ?? '');
+        } catch (e) {
+          console.warn('Failed to persist selected member:', e);
+        }
+      }
+    },
+    [setSelectedMemberIdStore]
+  );
 
   return {
     family,
