@@ -13,10 +13,13 @@ module.exports = {
       enabled: isProduction,
       checkAutomatically: isProduction ? 'ON_LOAD' : 'NEVER',
     },
-    // Fix duplicate RECORD_AUDIO permission
+    // Fix duplicate RECORD_AUDIO permission; INTERNET is required for Firebase
     android: {
       ...config.expo.android,
-      permissions: ['android.permission.RECORD_AUDIO'],
+      permissions: [
+        'android.permission.INTERNET',
+        'android.permission.RECORD_AUDIO',
+      ],
     },
   },
 };
