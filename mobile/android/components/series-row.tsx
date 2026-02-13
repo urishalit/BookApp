@@ -7,6 +7,7 @@ import { GenreBadgeList } from '@/components/genre-badge';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { getGenresByFrequency } from '@/constants/genres';
+import { getSeriesCoverFromBooks } from '@/lib/series-cover-utils';
 import type { MemberBook, Series } from '@/types/models';
 
 interface SeriesRowProps {
@@ -34,14 +35,9 @@ export function SeriesRow({ series, booksInSeries, onPress, onLongPress }: Serie
   );
   const primaryColor = useThemeColor({ light: '#8B5A2B', dark: '#D4A574' }, 'text');
 
-  // Get cover from first book in series by order
-  const sortedBooks = [...booksInSeries].sort((a, b) => {
-    const orderA = a.seriesOrder ?? Infinity;
-    const orderB = b.seriesOrder ?? Infinity;
-    return orderA - orderB;
-  });
-  const firstBook = sortedBooks[0];
-  const coverUrl = firstBook?.thumbnailUrl;
+  // Display priority: series.thumbnailUrl > first book with cover (by seriesOrder)
+  const coverUrl =
+    series.thumbnailUrl ?? getSeriesCoverFromBooks(booksInSeries);
 
   const booksRead = booksInSeries.filter((b) => b.status === 'read').length;
   const booksOwned = booksInSeries.length;

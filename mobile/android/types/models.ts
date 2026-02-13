@@ -80,6 +80,7 @@ export interface Series {
   // Genres are computed from books in the series, not stored
   totalBooks: number;
   createdBy?: string; // memberId of creator (optional, for tracking)
+  thumbnailUrl?: string; // Optional custom cover; falls back to first book with cover
 }
 
 /**

@@ -55,6 +55,23 @@ export async function uploadBookCover(
 }
 
 /**
+ * Upload a series cover
+ * @param uri Local file URI
+ * @param familyId Family ID
+ * @param seriesId Series ID
+ * @returns Download URL
+ */
+export async function uploadSeriesCover(
+  uri: string,
+  familyId: string,
+  seriesId: string
+): Promise<string> {
+  const timestamp = Date.now();
+  const path = `families/${familyId}/series/${seriesId}/cover_${timestamp}.jpg`;
+  return uploadImage(uri, path);
+}
+
+/**
  * Delete a file from Firebase Storage
  * @param path Storage path or full URL
  */

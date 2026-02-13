@@ -9,6 +9,7 @@
  */
 
 import type { MemberBook, Series } from '../../types/models';
+import { getSeriesCoverFromBooks } from '../../lib/series-cover-utils';
 
 describe('SeriesRow Component Logic', () => {
   const mockSeries: Series = {
@@ -209,12 +210,19 @@ describe('SeriesRow Component Logic', () => {
       expect(sorted[2].seriesOrder).toBeUndefined();
     });
 
-    it('should get first book cover from book with seriesOrder 1', () => {
-      const sorted = sortBooksByOrder(mockBooksInSeries);
-      const firstBook = sorted[0];
-      
-      expect(firstBook.seriesOrder).toBe(1);
-      expect(firstBook.thumbnailUrl).toBe('https://example.com/hp1.jpg');
+    it('should get first book with cover by seriesOrder (SeriesRow uses getSeriesCoverFromBooks)', () => {
+      const coverUrl = getSeriesCoverFromBooks(mockBooksInSeries);
+      expect(coverUrl).toBe('https://example.com/hp1.jpg');
+    });
+
+    it('should get second book cover when first has no cover', () => {
+      const booksWithSecondCover: MemberBook[] = [
+        { ...mockBooksInSeries[0], thumbnailUrl: undefined },
+        { ...mockBooksInSeries[1], thumbnailUrl: 'https://example.com/hp2.jpg' },
+        { ...mockBooksInSeries[2] },
+      ];
+      const coverUrl = getSeriesCoverFromBooks(booksWithSecondCover);
+      expect(coverUrl).toBe('https://example.com/hp2.jpg');
     });
   });
 
@@ -225,7 +233,7 @@ describe('SeriesRow Component Logic', () => {
     });
 
     it('should return 0 for empty array', () => {
-      const booksOwned: Book[] = [];
+      const booksOwned: MemberBook[] = [];
       expect(booksOwned.length).toBe(0);
     });
   });

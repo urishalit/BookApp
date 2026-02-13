@@ -8,6 +8,7 @@ import { GenreBadgeList } from '@/components/genre-badge';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { getGenresByFrequency } from '@/constants/genres';
+import { getSeriesCoverFromBooks } from '@/lib/series-cover-utils';
 import type { SeriesWithProgress } from '@/hooks/use-series';
 
 interface SeriesCardProps {
@@ -40,10 +41,9 @@ export function SeriesCard({
   const primaryColor = useThemeColor({ light: '#8B5A2B', dark: '#D4A574' }, 'text');
   const successColor = '#4CAF50';
 
-  // Get cover from first book in series, if available
-  const firstBook = series.booksInSeries.find((b) => b.seriesOrder === 1) 
-    ?? series.booksInSeries[0];
-  const coverUrl = firstBook?.thumbnailUrl;
+  // Display priority: series.thumbnailUrl > first book with cover (by seriesOrder)
+  const coverUrl =
+    series.thumbnailUrl ?? getSeriesCoverFromBooks(series.booksInSeries);
 
   // Show stacked covers effect for series with multiple books
   const hasMultipleBooks = series.booksOwned > 1;

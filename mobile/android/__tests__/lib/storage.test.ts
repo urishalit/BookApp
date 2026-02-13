@@ -2,6 +2,7 @@ import {
   uploadImage,
   uploadMemberAvatar,
   uploadBookCover,
+  uploadSeriesCover,
   deleteFile,
 } from '../../lib/storage';
 
@@ -41,6 +42,17 @@ describe('Storage Helpers', () => {
       const uri = 'file:///path/to/cover.jpg';
       
       const url = await uploadBookCover(uri, 'family-123', 'member-456', 'book-789');
+      
+      expect(mockStorage).toHaveBeenCalled();
+      expect(url).toBe('https://example.com/image.jpg');
+    });
+  });
+
+  describe('uploadSeriesCover', () => {
+    it('should upload series cover and return URL', async () => {
+      const uri = 'file:///path/to/cover.jpg';
+      
+      const url = await uploadSeriesCover(uri, 'family-123', 'series-456');
       
       expect(mockStorage).toHaveBeenCalled();
       expect(url).toBe('https://example.com/image.jpg');
