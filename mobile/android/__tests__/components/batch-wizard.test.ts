@@ -91,4 +91,38 @@ describe('add-batch-wizard source audit', () => {
     // Must set isFinishingRef.current = true before navigating
     expect(fnBody).toMatch(/isFinishingRef\.current\s*=\s*true/);
   });
+
+  it('must use MemberPicker with value, onChange, and renderTrigger for per-book member selection', () => {
+    expect(source).toMatch(/MemberPicker/);
+    expect(source).toMatch(/value=\{[^}]*memberId[^}]*\}/);
+    expect(source).toMatch(/onChange=\{[^}]*setMemberId/);
+    expect(source).toMatch(/renderTrigger=/);
+  });
+
+  it('must persist last selected member for next book in batch (setMemberId before advance, no reset in advanceToNext)', () => {
+    const handleSubmitMatch = source.match(/const handleSubmit\s*=\s*useCallback\s*\([^)]*\)\s*=>\s*\{([\s\S]*?)\},\s*\[/);
+    expect(handleSubmitMatch).not.toBeNull();
+    const handleSubmitBody = handleSubmitMatch![1];
+    expect(handleSubmitBody).toMatch(/setMemberId\s*\(\s*effectiveMemberId\s*\)/);
+    const advanceCallIndex = handleSubmitBody.indexOf('advanceToNext()');
+    const setMemberCallIndex = handleSubmitBody.indexOf('setMemberId(effectiveMemberId)');
+    expect(setMemberCallIndex).toBeGreaterThan(-1);
+    expect(advanceCallIndex).toBeGreaterThan(setMemberCallIndex);
+
+    const advanceToNextMatch = source.match(/const advanceToNext\s*=\s*useCallback\s*\([^)]*\)\s*=>\s*\{([\s\S]*?)\},\s*\[/);
+    expect(advanceToNextMatch).not.toBeNull();
+    const advanceToNextBody = advanceToNextMatch![1];
+    expect(advanceToNextBody).not.toMatch(/setMemberId\s*\(\s*undefined\s*\)/);
+  });
+});
+
+describe('MemberPicker source audit', () => {
+  const PICKER_PATH = path.join(__dirname, '../../components/member-picker.tsx');
+  const source = fs.readFileSync(PICKER_PATH, 'utf-8');
+
+  it('must support controlled mode with value, onChange, and renderTrigger props', () => {
+    expect(source).toMatch(/value\?: string/);
+    expect(source).toMatch(/onChange\?: \(member: Member\) => void/);
+    expect(source).toMatch(/renderTrigger\?:/);
+  });
 });

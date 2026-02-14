@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
   View,
   Modal,
@@ -19,9 +19,20 @@ import type { Member } from '@/types/models';
 interface MemberPickerProps {
   /** Compact trigger (avatar + name only) vs full */
   compact?: boolean;
+  /** Controlled mode: selected member id (does not update store) */
+  value?: string;
+  /** Controlled mode: called when user selects a member */
+  onChange?: (member: Member) => void;
+  /** Custom trigger; receives onPress and selectedMember. When provided, replaces default trigger */
+  renderTrigger?: (props: { onPress: () => void; selectedMember: Member | null }) => React.ReactNode;
 }
 
-export function MemberPicker({ compact = false }: MemberPickerProps) {
+export function MemberPicker({
+  compact = false,
+  value,
+  onChange,
+  renderTrigger,
+}: MemberPickerProps) {
   const { t } = useTranslation();
   const router = useRouter();
   const { width } = useWindowDimensions();
@@ -33,6 +44,14 @@ export function MemberPicker({ compact = false }: MemberPickerProps) {
     setSelectedMemberId,
   } = useFamily();
   const [visible, setVisible] = useState(false);
+
+  const isControlled = value !== undefined && onChange !== undefined;
+  const effectiveSelectedId = isControlled ? value : selectedMemberId;
+  const selectedMemberFromValue = useMemo(
+    () => members.find((m) => m.id === effectiveSelectedId) ?? null,
+    [members, effectiveSelectedId]
+  );
+  const displayMember = isControlled ? selectedMemberFromValue : (selectedMember ?? (members.length > 0 ? members[0] : null));
 
   const primaryColor = useThemeColor({ light: '#8B5A2B', dark: '#D4A574' }, 'text');
   const cardBg = useThemeColor({ light: '#FFFFFF', dark: '#1A2129' }, 'background');
@@ -49,10 +68,14 @@ export function MemberPicker({ compact = false }: MemberPickerProps) {
 
   const handleSelectMember = useCallback(
     (member: Member) => {
-      setSelectedMemberId(member.id);
+      if (isControlled) {
+        onChange!(member);
+      } else {
+        setSelectedMemberId(member.id);
+      }
       setVisible(false);
     },
-    [setSelectedMemberId]
+    [isControlled, onChange, setSelectedMemberId]
   );
 
   const handleAddMember = useCallback(() => {
@@ -62,7 +85,7 @@ export function MemberPicker({ compact = false }: MemberPickerProps) {
 
   const renderMemberItem = useCallback(
     ({ item }: { item: Member }) => {
-      const isSelected = item.id === selectedMemberId;
+      const isSelected = item.id === effectiveSelectedId;
       return (
         <Pressable
           style={({ pressed }) => [
@@ -91,7 +114,7 @@ export function MemberPicker({ compact = false }: MemberPickerProps) {
         </Pressable>
       );
     },
-    [selectedMemberId, primaryColor, cardBg, borderColor, handleSelectMember]
+    [effectiveSelectedId, primaryColor, cardBg, borderColor, handleSelectMember]
   );
 
   const renderEmptyState = () => (
@@ -120,45 +143,46 @@ export function MemberPicker({ compact = false }: MemberPickerProps) {
     return null;
   }
 
-  // 0 members: still show a trigger that opens the empty-state modal
   const hasMembers = members.length > 0;
-  const displayMember = selectedMember ?? (hasMembers ? members[0] : null);
+
+  const trigger = renderTrigger ? (
+    renderTrigger({ onPress: handleOpen, selectedMember: displayMember })
+  ) : (
+    <Pressable style={styles.trigger} onPress={handleOpen}>
+      {displayMember ? (
+        <>
+          <MemberAvatar
+            name={displayMember.name}
+            color={displayMember.color}
+            avatarUrl={displayMember.avatarUrl}
+            size="small"
+          />
+          {!compact && (
+            <ThemedText style={styles.triggerName} numberOfLines={1}>
+              {displayMember.name}
+            </ThemedText>
+          )}
+          <IconSymbol
+            name="chevron.down"
+            size={16}
+            color={primaryColor}
+            style={styles.chevron}
+          />
+        </>
+      ) : (
+        <View style={styles.noMemberTrigger}>
+          <IconSymbol name="person.crop.circle.badge.plus" size={28} color={primaryColor} />
+          <ThemedText style={[styles.noMemberText, { color: primaryColor }]}>
+            {t('memberPicker.addFirstMember')}
+          </ThemedText>
+        </View>
+      )}
+    </Pressable>
+  );
 
   return (
     <>
-      <Pressable
-        style={styles.trigger}
-        onPress={handleOpen}
-      >
-        {displayMember ? (
-          <>
-            <MemberAvatar
-              name={displayMember.name}
-              color={displayMember.color}
-              avatarUrl={displayMember.avatarUrl}
-              size="small"
-            />
-            {!compact && (
-              <ThemedText style={styles.triggerName} numberOfLines={1}>
-                {displayMember.name}
-              </ThemedText>
-            )}
-            <IconSymbol
-              name="chevron.down"
-              size={16}
-              color={primaryColor}
-              style={styles.chevron}
-            />
-          </>
-        ) : (
-          <View style={styles.noMemberTrigger}>
-            <IconSymbol name="person.crop.circle.badge.plus" size={28} color={primaryColor} />
-            <ThemedText style={[styles.noMemberText, { color: primaryColor }]}>
-              {t('memberPicker.addFirstMember')}
-            </ThemedText>
-          </View>
-        )}
-      </Pressable>
+      {trigger}
 
       <Modal
         visible={visible}

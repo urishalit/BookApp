@@ -289,6 +289,32 @@ describe('useBooks Hook', () => {
       );
     });
 
+    it('should use memberId from data when provided (e.g. batch add)', async () => {
+      const { result } = renderHook(() => useBookOperations());
+
+      await result.current.addBook({
+        title: 'Batch Book',
+        author: 'Batch Author',
+        status: 'reading',
+        memberId: 'member-456',
+      });
+
+      expect(firestoreModule.findOrCreateFamilyBook).toHaveBeenCalledWith(
+        'family-123',
+        expect.objectContaining({
+          title: 'Batch Book',
+          author: 'Batch Author',
+          addedBy: 'member-456',
+        })
+      );
+      expect(firestoreModule.addToMemberLibrary).toHaveBeenCalledWith(
+        'family-123',
+        'member-456',
+        'new-book-id',
+        'reading'
+      );
+    });
+
     it('should update book status', async () => {
       const { result } = renderHook(() => useBookOperations());
 

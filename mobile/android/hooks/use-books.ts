@@ -178,6 +178,8 @@ interface AddBookData {
   genres?: string[];
   seriesId?: string;
   seriesOrder?: number;
+  /** When provided (e.g. batch add), use this member instead of the globally selected one */
+  memberId?: string;
 }
 
 /**
@@ -194,8 +196,9 @@ export function useBookOperations() {
    */
   const addBook = useCallback(
     async (data: AddBookData): Promise<{ bookId: string; libraryEntryId: string }> => {
+      const effectiveMemberId = data.memberId ?? selectedMemberId;
       if (!family) throw new Error('No family loaded');
-      if (!selectedMemberId) throw new Error('No member selected');
+      if (!effectiveMemberId) throw new Error('No member selected');
 
       const status = data.status || 'to-read';
 
@@ -208,11 +211,11 @@ export function useBookOperations() {
         genres: data.genres,
         seriesId: data.seriesId,
         seriesOrder: data.seriesOrder,
-        addedBy: selectedMemberId,
+        addedBy: effectiveMemberId,
       });
 
       // Add to member's library
-      const libraryEntryId = await addToMemberLibrary(family.id, selectedMemberId, bookId, status);
+      const libraryEntryId = await addToMemberLibrary(family.id, effectiveMemberId, bookId, status);
 
       return { bookId, libraryEntryId };
     },

@@ -14,6 +14,7 @@ import { Image } from 'expo-image';
 import { useTranslation } from 'react-i18next';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { MemberPicker } from '@/components/member-picker';
 import { SeriesPicker } from '@/components/series-picker';
 import { GenrePicker } from '@/components/genre-picker';
 import { getAllStatuses, getStatusConfig } from '@/components/book-status-badge';
@@ -46,6 +47,7 @@ export default function AddBatchWizardScreen() {
   const [genres, setGenres] = useState<string[]>([]);
   const [seriesId, setSeriesId] = useState<string | undefined>();
   const [seriesOrder, setSeriesOrder] = useState<number | undefined>();
+  const [memberId, setMemberId] = useState<string | undefined>(undefined);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const primaryColor = useThemeColor({ light: '#8B5A2B', dark: '#D4A574' }, 'text');
@@ -101,16 +103,17 @@ export default function AddBatchWizardScreen() {
       return;
     }
 
+    const effectiveMemberId = memberId ?? selectedMemberId;
     setIsSubmitting(true);
 
     try {
       let thumbnailUrl: string | undefined;
 
-      if (coverUri && selectedMemberId) {
+      if (coverUri && effectiveMemberId) {
         try {
           const family = useFamilyStore.getState().family;
           if (family) {
-            thumbnailUrl = await uploadBookCover(coverUri, family.id, selectedMemberId);
+            thumbnailUrl = await uploadBookCover(coverUri, family.id, effectiveMemberId);
           }
         } catch (err) {
           console.error('Failed to upload cover:', err);
@@ -125,8 +128,10 @@ export default function AddBatchWizardScreen() {
         genres: genres.length > 0 ? genres : undefined,
         seriesId,
         seriesOrder,
+        memberId: effectiveMemberId,
       });
 
+      setMemberId(effectiveMemberId);
       advanceToNext();
     } catch (error) {
       console.error('Add book error:', error);
@@ -140,6 +145,7 @@ export default function AddBatchWizardScreen() {
     author,
     status,
     coverUri,
+    memberId,
     selectedMemberId,
     seriesId,
     seriesOrder,
@@ -290,12 +296,18 @@ export default function AddBatchWizardScreen() {
             />
           </View>
 
-          <View style={[styles.memberNote, { backgroundColor: inputBg }]}>
-            <ThemedText style={styles.memberNoteText}>
-              {t('addBook.addingFor')}{' '}
-              <ThemedText style={{ fontWeight: '600' }}>{selectedMember.name}</ThemedText>
-            </ThemedText>
-          </View>
+          <MemberPicker
+            value={memberId ?? selectedMemberId}
+            onChange={(m) => setMemberId(m.id)}
+            renderTrigger={({ onPress, selectedMember }) => (
+              <Pressable onPress={onPress} style={[styles.memberNote, { backgroundColor: inputBg }]}>
+                <ThemedText style={styles.memberNoteText}>
+                  {t('addBook.addingFor')}{' '}
+                  <ThemedText style={{ fontWeight: '600' }}>{selectedMember?.name ?? ''}</ThemedText>
+                </ThemedText>
+              </Pressable>
+            )}
+          />
 
           <View style={styles.actions}>
             <Pressable
