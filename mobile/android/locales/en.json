@@ -97,7 +97,8 @@
     "authorPlaceholder": "Author",
     "titleRequired": "Title is required",
     "authorRequired": "Author is required",
-    "failedToUpdate": "Failed to update book details"
+    "failedToUpdate": "Failed to update book details",
+    "year": "{{year}}"
   },
   "addBook": {
     "title": "Add Book",
@@ -119,7 +120,9 @@
     "chooseCoverMethod": "Choose how to add a cover image",
     "selectMemberFirst": "Please select a family member first.",
     "permissionRequired": "Permission Required",
-    "cameraPermission": "Please allow camera access to take photos."
+    "cameraPermission": "Please allow camera access to take photos.",
+    "year": "Year",
+    "yearPlaceholder": "Year (optional)"
   },
   "search": {
     "title": "Search Books",

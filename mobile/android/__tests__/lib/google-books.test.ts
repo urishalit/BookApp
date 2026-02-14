@@ -5,6 +5,7 @@ import {
   searchByAuthor,
   searchByTitle,
   transformVolume,
+  extractYearFromPublishedDate,
   GoogleBooksVolume,
 } from '../../lib/google-books';
 
@@ -303,6 +304,49 @@ describe('Google Books API', () => {
       const calledUrl = mockFetch.mock.calls[0][0];
       expect(calledUrl).toContain('intitle');
       expect(calledUrl).toContain('Gatsby');
+    });
+  });
+
+  describe('extractYearFromPublishedDate', () => {
+    it('should extract year from full date (YYYY-MM-DD)', () => {
+      expect(extractYearFromPublishedDate('2020-01-15')).toBe(2020);
+    });
+
+    it('should extract year from partial date (YYYY-MM)', () => {
+      expect(extractYearFromPublishedDate('2019-06')).toBe(2019);
+    });
+
+    it('should extract year from year-only string', () => {
+      expect(extractYearFromPublishedDate('1925')).toBe(1925);
+    });
+
+    it('should return undefined for undefined input', () => {
+      expect(extractYearFromPublishedDate(undefined)).toBeUndefined();
+    });
+
+    it('should return undefined for empty string', () => {
+      expect(extractYearFromPublishedDate('')).toBeUndefined();
+    });
+
+    it('should return undefined for invalid string (non-numeric prefix)', () => {
+      expect(extractYearFromPublishedDate('invalid-date')).toBeUndefined();
+    });
+
+    it('should return undefined for year out of valid range (< 1)', () => {
+      expect(extractYearFromPublishedDate('0000')).toBeUndefined();
+    });
+
+    it('should accept year 9999 as valid', () => {
+      expect(extractYearFromPublishedDate('9999')).toBe(9999);
+    });
+
+    it('should accept year 1 as valid', () => {
+      expect(extractYearFromPublishedDate('1-01-01')).toBe(1);
+    });
+
+    it('should handle string array (Expo Router params)', () => {
+      expect(extractYearFromPublishedDate(['2020-01-15'])).toBe(2020);
+      expect(extractYearFromPublishedDate(['2019'])).toBe(2019);
     });
   });
 });

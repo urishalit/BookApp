@@ -36,6 +36,7 @@ export interface FamilyBook {
   genres?: string[]; // Dynamic genre strings
   seriesId?: string;
   seriesOrder?: number;
+  year?: number; // Release year (4-digit)
   addedBy: string; // memberId who first added this book
   addedAt: Timestamp;
 }
@@ -70,6 +71,7 @@ export interface MemberBook {
   genres?: string[]; // Dynamic genre strings
   seriesId?: string;
   seriesOrder?: number;
+  year?: number;
 }
 
 export interface Series {
@@ -95,6 +97,7 @@ export interface SeriesBookDisplay {
   genres?: string[]; // Dynamic genre strings
   seriesId?: string;
   seriesOrder?: number;
+  year?: number;
   // Library status
   libraryEntryId?: string; // undefined if not in library
   status: BookStatus; // 'to-read' if not in library

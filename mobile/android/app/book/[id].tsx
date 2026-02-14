@@ -44,6 +44,7 @@ export default function BookDetailScreen() {
   const [localGenres, setLocalGenres] = useState<string[]>([]);
   const [localTitle, setLocalTitle] = useState('');
   const [localAuthor, setLocalAuthor] = useState('');
+  const [localYear, setLocalYear] = useState('');
   const [isUploadingCover, setIsUploadingCover] = useState(false);
 
   const primaryColor = useThemeColor({ light: '#8B5A2B', dark: '#D4A574' }, 'text');
@@ -65,26 +66,40 @@ export default function BookDetailScreen() {
     }
   }, [book?.genres]);
 
-  // Sync local title/author with book
+  // Sync local title/author/year with book
   useEffect(() => {
     if (book) {
       setLocalTitle(book.title);
       setLocalAuthor(book.author);
+      setLocalYear(book.year ? String(book.year) : '');
     }
-  }, [book?.id, book?.title, book?.author]);
+  }, [book?.id, book?.title, book?.author, book?.year]);
 
-  const saveTitleAuthor = useCallback(
-    async (newTitle: string, newAuthor: string) => {
+  const saveTitleAuthorYear = useCallback(
+    async (newTitle: string, newAuthor: string, newYearInput: string) => {
       if (!book || !newTitle.trim() || !newAuthor.trim()) return;
-      if (newTitle.trim() === book.title && newAuthor.trim() === book.author) return;
+      const newYear = newYearInput.trim()
+        ? (() => {
+            const n = parseInt(newYearInput.trim(), 10);
+            return !isNaN(n) && n >= 1 && n <= 9999 ? n : undefined;
+          })()
+        : undefined;
+      if (
+        newTitle.trim() === book.title &&
+        newAuthor.trim() === book.author &&
+        newYear === (book as MemberBook & { year?: number }).year
+      )
+        return;
       setIsUpdating(true);
       try {
         await updateBookMetadata(book.id, {
           title: newTitle.trim(),
           author: newAuthor.trim(),
+          year: newYear,
         });
         setLocalTitle(newTitle.trim());
         setLocalAuthor(newAuthor.trim());
+        setLocalYear(newYear !== undefined ? String(newYear) : '');
       } catch (error) {
         console.error('Failed to update book details:', error);
         Alert.alert(t('common.error'), t('bookDetail.failedToUpdate'));
@@ -95,16 +110,21 @@ export default function BookDetailScreen() {
     [book, updateBookMetadata, t]
   );
 
-  // Debounced auto-save for title/author when in edit mode
+  // Debounced auto-save for title/author/year when in edit mode
   useEffect(() => {
     if (!isEditMode || !book) return;
     const timer = setTimeout(() => {
       if (!localTitle.trim() || !localAuthor.trim()) return;
-      if (localTitle === book.title && localAuthor === book.author) return;
-      saveTitleAuthor(localTitle, localAuthor);
+      if (
+        localTitle === book.title &&
+        localAuthor === book.author &&
+        localYear === (book.year ? String(book.year) : '')
+      )
+        return;
+      saveTitleAuthorYear(localTitle, localAuthor, localYear);
     }, 600);
     return () => clearTimeout(timer);
-  }, [localTitle, localAuthor, isEditMode, book, saveTitleAuthor]);
+  }, [localTitle, localAuthor, localYear, isEditMode, book, saveTitleAuthorYear]);
 
   // Header pencil icon toggles edit mode
   const toggleEditMode = useCallback(() => {
@@ -115,6 +135,7 @@ export default function BookDetailScreen() {
           setLocalTitle(book.title);
           setLocalAuthor(book.author);
         }
+        setLocalYear(book.year ? String(book.year) : '');
       }
       return next;
     });
@@ -376,6 +397,17 @@ export default function BookDetailScreen() {
                 placeholderTextColor={placeholderColor}
                 autoCapitalize="words"
               />
+              <TextInput
+                style={[
+                  styles.infoInput,
+                  { backgroundColor: inputBg, borderColor: inputBorder, color: textColor },
+                ]}
+                value={localYear}
+                onChangeText={setLocalYear}
+                placeholder={t('addBook.yearPlaceholder')}
+                placeholderTextColor={placeholderColor}
+                keyboardType="number-pad"
+              />
             </View>
           ) : (
             <>
@@ -385,6 +417,11 @@ export default function BookDetailScreen() {
               <ThemedText style={[styles.author, { color: subtitleColor }]}>
                 {t('bookDetail.byAuthor', { author: localAuthor || book.author })}
               </ThemedText>
+              {book.year && (
+                <ThemedText style={[styles.yearText, { color: subtitleColor }]}>
+                  {t('bookDetail.year', { year: book.year })}
+                </ThemedText>
+              )}
             </>
           )}
         </View>
@@ -604,6 +641,11 @@ const styles = StyleSheet.create({
   author: {
     fontSize: 16,
     textAlign: 'center',
+  },
+  yearText: {
+    fontSize: 14,
+    textAlign: 'center',
+    marginTop: 4,
   },
   genresSection: {
     padding: 20,

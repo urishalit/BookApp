@@ -21,6 +21,7 @@ import { getAllStatuses, getStatusConfig } from '@/components/book-status-badge'
 import { useBookOperations } from '@/hooks/use-books';
 import { useFamily } from '@/hooks/use-family';
 import { useThemeColor } from '@/hooks/use-theme-color';
+import { extractYearFromPublishedDate } from '@/lib/google-books';
 import { normalizeApiCategories } from '@/constants/genres';
 import type { BookStatus } from '@/types/models';
 
@@ -90,6 +91,7 @@ export default function AddFromSearchScreen() {
         genres: genres.length > 0 ? genres : undefined,
         seriesId,
         seriesOrder,
+        year: extractYearFromPublishedDate(params.publishedDate),
       });
 
       // Go back to search screen and then to books

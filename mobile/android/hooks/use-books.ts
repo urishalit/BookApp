@@ -17,6 +17,7 @@ import {
 } from '@/lib/firestore';
 import { normalizeApiCategories } from '@/constants/genres';
 import type { MemberBook, MemberLibraryEntry, FamilyBook, BookStatus } from '@/types/models';
+import { extractYearFromPublishedDate } from '@/lib/google-books';
 import type { GoogleBookData } from '@/lib/google-books';
 
 /**
@@ -101,6 +102,7 @@ export function useBooksListener() {
           genres: book.genres,
           seriesId: book.seriesId,
           seriesOrder: book.seriesOrder,
+          year: book.year,
         } as MemberBook;
       })
       .filter((book): book is MemberBook => book !== null);
@@ -178,6 +180,7 @@ interface AddBookData {
   genres?: string[];
   seriesId?: string;
   seriesOrder?: number;
+  year?: number;
   /** When provided (e.g. batch add), use this member instead of the globally selected one */
   memberId?: string;
 }
@@ -211,8 +214,14 @@ export function useBookOperations() {
         genres: data.genres,
         seriesId: data.seriesId,
         seriesOrder: data.seriesOrder,
+        year: data.year,
         addedBy: effectiveMemberId,
       });
+
+      // When book already existed (e.g. matched by googleBooksId), persist year if we have it from Google Books
+      if (!isNew && data.year !== undefined) {
+        await updateFamilyBook(family.id, bookId, { year: data.year });
+      }
 
       // Add to member's library
       const libraryEntryId = await addToMemberLibrary(family.id, effectiveMemberId, bookId, status);
@@ -373,6 +382,7 @@ export function useBookOperations() {
       // Create family book entries for each selected book
       const bookPromises = books.map(async (book, index) => {
         const genres = book.categories ? normalizeApiCategories(book.categories) : undefined;
+        const year = extractYearFromPublishedDate(book.publishedDate);
         
         // Check if book already exists in family catalog
         const { bookId, isNew } = await findOrCreateFamilyBook(family.id, {
@@ -383,6 +393,7 @@ export function useBookOperations() {
           genres,
           seriesId,
           seriesOrder: startOrder + index,
+          year,
           addedBy: selectedMemberId,
         });
 

@@ -248,6 +248,7 @@ export function useSeriesDetail(seriesId: string | undefined) {
           genres: familyBook.genres,
           seriesId: familyBook.seriesId,
           seriesOrder: familyBook.seriesOrder,
+          year: familyBook.year,
           // Library status (from member's library or default)
           libraryEntryId: memberBook?.libraryEntryId,
           status: memberBook?.status ?? 'to-read',

@@ -39,6 +39,7 @@ export default function AddBookScreen() {
   const [coverUri, setCoverUri] = useState<string | null>(null);
   const [seriesId, setSeriesId] = useState<string | undefined>();
   const [seriesOrder, setSeriesOrder] = useState<number | undefined>();
+  const [yearInput, setYearInput] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const primaryColor = useThemeColor({ light: '#8B5A2B', dark: '#D4A574' }, 'text');
@@ -120,6 +121,13 @@ export default function AddBookScreen() {
         }
       }
 
+      const year = yearInput.trim()
+        ? (() => {
+            const n = parseInt(yearInput.trim(), 10);
+            return !isNaN(n) && n >= 1 && n <= 9999 ? n : undefined;
+          })()
+        : undefined;
+
       await addBook({
         title: title.trim(),
         author: author.trim(),
@@ -128,6 +136,7 @@ export default function AddBookScreen() {
         genres: genres.length > 0 ? genres : undefined,
         seriesId,
         seriesOrder,
+        year,
       });
 
       router.back();
@@ -138,7 +147,7 @@ export default function AddBookScreen() {
     } finally {
       setIsSubmitting(false);
     }
-  }, [title, author, status, coverUri, selectedMemberId, seriesId, seriesOrder, addBook, router]);
+  }, [title, author, status, coverUri, yearInput, selectedMemberId, seriesId, seriesOrder, addBook, router]);
 
   if (!selectedMember) {
     return (
@@ -216,6 +225,23 @@ export default function AddBookScreen() {
               placeholder={t('addBook.authorPlaceholder')}
               placeholderTextColor={placeholderColor}
               autoCapitalize="words"
+              returnKeyType="next"
+            />
+          </View>
+
+          {/* Year Input */}
+          <View style={styles.inputGroup}>
+            <ThemedText style={styles.label}>{t('addBook.year')}</ThemedText>
+            <TextInput
+              style={[
+                styles.input,
+                { backgroundColor: inputBg, borderColor: inputBorder, color: textColor },
+              ]}
+              value={yearInput}
+              onChangeText={setYearInput}
+              placeholder={t('addBook.yearPlaceholder')}
+              placeholderTextColor={placeholderColor}
+              keyboardType="number-pad"
               returnKeyType="done"
             />
           </View>

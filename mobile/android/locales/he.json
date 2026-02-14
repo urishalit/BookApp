@@ -97,7 +97,8 @@
     "authorPlaceholder": "מחבר",
     "titleRequired": "נדרשת כותרת",
     "authorRequired": "נדרש מחבר",
-    "failedToUpdate": "עדכון פרטי הספר נכשל"
+    "failedToUpdate": "עדכון פרטי הספר נכשל",
+    "year": "{{year}}"
   },
   "addBook": {
     "title": "הוסף ספר",
@@ -119,7 +120,9 @@
     "chooseCoverMethod": "בחר איך להוסיף תמונת עטיפה",
     "selectMemberFirst": "אנא בחר בן משפחה תחילה.",
     "permissionRequired": "נדרשת הרשאה",
-    "cameraPermission": "אנא אשר גישה למצלמה כדי לצלם תמונות."
+    "cameraPermission": "אנא אשר גישה למצלמה כדי לצלם תמונות.",
+    "year": "שנה",
+    "yearPlaceholder": "שנה (אופציונלי)"
   },
   "search": {
     "title": "חיפוש ספרים",

@@ -58,7 +58,7 @@ export function BookCard({ book, seriesName, onPress, onLongPress, onStatusPress
             {book.title}
           </ThemedText>
           <ThemedText style={[styles.author, { color: subtitleColor }]} numberOfLines={1}>
-            {book.author}
+            {book.year ? `${book.author} (${book.year})` : book.author}
           </ThemedText>
           {book.genres && book.genres.length > 0 && (
             <View style={styles.genresRow}>

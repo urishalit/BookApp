@@ -47,6 +47,7 @@ export default function AddBatchWizardScreen() {
   const [genres, setGenres] = useState<string[]>([]);
   const [seriesId, setSeriesId] = useState<string | undefined>();
   const [seriesOrder, setSeriesOrder] = useState<number | undefined>();
+  const [yearInput, setYearInput] = useState('');
   const [memberId, setMemberId] = useState<string | undefined>(undefined);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -85,6 +86,7 @@ export default function AddBatchWizardScreen() {
     setGenres([]);
     setSeriesId(undefined);
     setSeriesOrder(undefined);
+    setYearInput('');
     if (hasNextPhoto(photoUris, currentIndex)) {
       setCurrentIndex(getNextIndex(currentIndex));
     } else {
@@ -120,6 +122,13 @@ export default function AddBatchWizardScreen() {
         }
       }
 
+      const year = yearInput.trim()
+        ? (() => {
+            const n = parseInt(yearInput.trim(), 10);
+            return !isNaN(n) && n >= 1 && n <= 9999 ? n : undefined;
+          })()
+        : undefined;
+
       await addBook({
         title: title.trim(),
         author: author.trim(),
@@ -128,6 +137,7 @@ export default function AddBatchWizardScreen() {
         genres: genres.length > 0 ? genres : undefined,
         seriesId,
         seriesOrder,
+        year,
         memberId: effectiveMemberId,
       });
 
@@ -145,6 +155,7 @@ export default function AddBatchWizardScreen() {
     author,
     status,
     coverUri,
+    yearInput,
     memberId,
     selectedMemberId,
     seriesId,
@@ -164,6 +175,7 @@ export default function AddBatchWizardScreen() {
     setGenres([]);
     setSeriesId(undefined);
     setSeriesOrder(undefined);
+    setYearInput('');
     if (newUris.length > 0 && currentIndex >= newUris.length) {
       setCurrentIndex(newUris.length - 1);
     }
@@ -242,6 +254,23 @@ export default function AddBatchWizardScreen() {
               placeholder={t('addBook.authorPlaceholder')}
               placeholderTextColor={placeholderColor}
               autoCapitalize="words"
+              returnKeyType="next"
+            />
+          </View>
+
+          {/* Year Input */}
+          <View style={styles.inputGroup}>
+            <ThemedText style={styles.label}>{t('addBook.year')}</ThemedText>
+            <TextInput
+              style={[
+                styles.input,
+                { backgroundColor: inputBg, borderColor: inputBorder, color: textColor },
+              ]}
+              value={yearInput}
+              onChangeText={setYearInput}
+              placeholder={t('addBook.yearPlaceholder')}
+              placeholderTextColor={placeholderColor}
+              keyboardType="number-pad"
               returnKeyType="done"
             />
           </View>

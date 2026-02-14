@@ -289,6 +289,51 @@ describe('useBooks Hook', () => {
       );
     });
 
+    it('should pass year to findOrCreateFamilyBook when provided in AddBookData', async () => {
+      const { result } = renderHook(() => useBookOperations());
+
+      await result.current.addBook({
+        title: 'Year Book',
+        author: 'Year Author',
+        status: 'to-read',
+        year: 2023,
+      });
+
+      expect(firestoreModule.findOrCreateFamilyBook).toHaveBeenCalledWith(
+        'family-123',
+        expect.objectContaining({
+          title: 'Year Book',
+          author: 'Year Author',
+          addedBy: 'member-123',
+          year: 2023,
+        })
+      );
+    });
+
+    it('should persist year to existing book when findOrCreateFamilyBook returns existing (e.g. add from Google Books)', async () => {
+      // Simulate: book already exists in catalog (matched by googleBooksId), we add with year from publishedDate
+      (firestoreModule.findOrCreateFamilyBook as jest.Mock).mockResolvedValueOnce({
+        bookId: 'existing-book-id',
+        isNew: false,
+      });
+
+      const { result } = renderHook(() => useBookOperations());
+
+      await result.current.addBook({
+        title: 'Gatsby',
+        author: 'F. Scott Fitzgerald',
+        status: 'to-read',
+        googleBooksId: 'gb-123',
+        year: 1925,
+      });
+
+      expect(firestoreModule.updateFamilyBook).toHaveBeenCalledWith(
+        'family-123',
+        'existing-book-id',
+        { year: 1925 }
+      );
+    });
+
     it('should use memberId from data when provided (e.g. batch add)', async () => {
       const { result } = renderHook(() => useBookOperations());
 
@@ -682,6 +727,28 @@ describe('useBooks Hook', () => {
           'family-123',
           expect.objectContaining({
             seriesOrder: 11,
+          })
+        );
+      });
+
+      it('should pass year from publishedDate to findOrCreateFamilyBook', async () => {
+        const booksWithPublishedDate = [
+          {
+            ...mockGoogleBooks[0],
+            publishedDate: '2015-03-20',
+          },
+        ];
+
+        const { result } = renderHook(() => useBookOperations());
+
+        await result.current.addBooksToSeries('series-1', booksWithPublishedDate);
+
+        expect(firestoreModule.findOrCreateFamilyBook).toHaveBeenCalledWith(
+          'family-123',
+          expect.objectContaining({
+            title: 'Book One',
+            author: 'Author One',
+            year: 2015,
           })
         );
       });

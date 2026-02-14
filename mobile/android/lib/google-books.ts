@@ -72,6 +72,18 @@ export interface GoogleBookData {
 }
 
 /**
+ * Extract a 4-digit year from Google Books publishedDate string.
+ * publishedDate can be "2020", "2020-01", or "2020-01-15".
+ * Accepts string | string[] for Expo Router params compatibility.
+ */
+export function extractYearFromPublishedDate(publishedDate?: string | string[]): number | undefined {
+  const str = typeof publishedDate === 'string' ? publishedDate : Array.isArray(publishedDate) ? publishedDate[0] : undefined;
+  if (!str) return undefined;
+  const year = parseInt(str.substring(0, 4), 10);
+  return isNaN(year) || year < 1 || year > 9999 ? undefined : year;
+}
+
+/**
  * Build URL with API key if available
  */
 function buildUrl(path: string, params: Record<string, string>): string {
