@@ -38,6 +38,7 @@ export default function AddBatchWizardScreen() {
   const { addBook } = useBookOperations();
   const photoUris = useBatchAddStore((s) => s.photoUris);
   const setPhotoUris = useBatchAddStore((s) => s.setPhotoUris);
+  const suggestionsByIndex = useBatchAddStore((s) => s.suggestionsByIndex);
   const reset = useBatchAddStore((s) => s.reset);
 
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -78,6 +79,18 @@ export default function AddBatchWizardScreen() {
       finishWizard();
     }
   }, [photoUris.length, finishWizard]);
+
+  const suggestion = suggestionsByIndex[currentIndex];
+  useEffect(() => {
+    if (
+      suggestion &&
+      !title.trim() &&
+      !author.trim()
+    ) {
+      if (suggestion.title) setTitle(suggestion.title);
+      if (suggestion.author) setAuthor(suggestion.author);
+    }
+  }, [currentIndex, suggestion, title, author]);
 
   const advanceToNext = useCallback(() => {
     setTitle('');

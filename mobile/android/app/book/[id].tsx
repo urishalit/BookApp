@@ -24,6 +24,7 @@ import { useSeries } from '@/hooks/use-series';
 import { useFamilyStore } from '@/stores/family-store';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { uploadBookCover } from '@/lib/storage';
+import { suggestBookMetadataFromImage } from '@/lib/book-cover-service';
 import type { MemberBook, BookStatus } from '@/types/models';
 
 const PLACEHOLDER_COVER = 'https://via.placeholder.com/256x384/E5D4C0/8B5A2B?text=No+Cover';
@@ -177,10 +178,19 @@ export default function BookDetailScreen() {
     });
 
     if (!result.canceled && result.assets[0] && book && family && selectedMemberId) {
+      const uri = result.assets[0].uri;
+      if (!localTitle.trim() && !localAuthor.trim()) {
+        suggestBookMetadataFromImage(uri)
+          .then((suggestions) => {
+            if (suggestions.title) setLocalTitle(suggestions.title);
+            if (suggestions.author) setLocalAuthor(suggestions.author);
+          })
+          .catch(() => {});
+      }
       setIsUploadingCover(true);
       try {
         const downloadUrl = await uploadBookCover(
-          result.assets[0].uri,
+          uri,
           family.id,
           selectedMemberId,
           book.id
@@ -193,7 +203,7 @@ export default function BookDetailScreen() {
         setIsUploadingCover(false);
       }
     }
-  }, [book, family, selectedMemberId, updateBookMetadata, t]);
+  }, [book, family, selectedMemberId, updateBookMetadata, t, localTitle, localAuthor]);
 
   const handleTakePhoto = useCallback(async () => {
     const permission = await ImagePicker.requestCameraPermissionsAsync();
@@ -209,10 +219,19 @@ export default function BookDetailScreen() {
     });
 
     if (!result.canceled && result.assets[0] && book && family && selectedMemberId) {
+      const uri = result.assets[0].uri;
+      if (!localTitle.trim() && !localAuthor.trim()) {
+        suggestBookMetadataFromImage(uri)
+          .then((suggestions) => {
+            if (suggestions.title) setLocalTitle(suggestions.title);
+            if (suggestions.author) setLocalAuthor(suggestions.author);
+          })
+          .catch(() => {});
+      }
       setIsUploadingCover(true);
       try {
         const downloadUrl = await uploadBookCover(
-          result.assets[0].uri,
+          uri,
           family.id,
           selectedMemberId,
           book.id
@@ -225,7 +244,7 @@ export default function BookDetailScreen() {
         setIsUploadingCover(false);
       }
     }
-  }, [book, family, selectedMemberId, updateBookMetadata, t]);
+  }, [book, family, selectedMemberId, updateBookMetadata, t, localTitle, localAuthor]);
 
   const handleEditCover = useCallback(() => {
     Alert.alert(

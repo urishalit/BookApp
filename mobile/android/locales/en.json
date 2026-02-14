@@ -249,7 +249,11 @@
     "failedToAddBook": "Failed to add book to library",
     "failedToUpdateGenres": "Failed to update genres",
     "removeBookFromSeries": "Remove Book",
-    "removeBookFromSeriesConfirm": "Remove \"{{title}}\" from this series and your library?"
+    "removeBookFromSeriesConfirm": "Remove \"{{title}}\" from this series and your library?",
+    "addBookFromCoverTitle": "Add book to series?",
+    "addBookFromCoverMessage": "Add \"{{title}}\" by {{author}}?",
+    "addBookFromCoverAdd": "Add book",
+    "justUpdateCover": "Just update cover"
   },
   "errors": {
     "generic": "Something went wrong",

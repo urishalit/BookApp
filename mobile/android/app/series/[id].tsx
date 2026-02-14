@@ -30,6 +30,7 @@ import { getGenresByFrequency } from '@/constants/genres';
 import { getSeriesCoverFromBooks } from '@/lib/series-cover-utils';
 import { computeNextSeriesOrder } from '@/lib/series-next-order';
 import { uploadSeriesCover } from '@/lib/storage';
+import { suggestBookMetadataFromImage } from '@/lib/book-cover-service';
 import type { SeriesBookDisplay } from '@/types/models';
 
 const PLACEHOLDER_COVER = 'https://via.placeholder.com/128x192/E5D4C0/8B5A2B?text=No+Cover';
@@ -39,9 +40,10 @@ export default function SeriesDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const family = useFamilyStore((s) => s.family);
+  const selectedMemberId = useFamilyStore((s) => s.selectedMemberId);
   const { series, books, isLoading } = useSeriesDetail(id);
   const { editSeries, removeSeries, updateSeriesStatus } = useSeriesOperations();
-  const { addOrUpdateBookStatus, updateSeriesBooksGenres, addBooksToSeries, removeBook, updateBookMetadata } = useBookOperations();
+  const { addOrUpdateBookStatus, addBook, updateSeriesBooksGenres, addBooksToSeries, removeBook, updateBookMetadata } = useBookOperations();
 
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState('');
@@ -245,6 +247,75 @@ export default function SeriesDetailScreen() {
   const coverUrl =
     series?.thumbnailUrl ?? getSeriesCoverFromBooks(books) ?? PLACEHOLDER_COVER;
 
+  const processCoverImage = useCallback(
+    async (uri: string) => {
+      if (!id || !family) return;
+      setIsUploadingCover(true);
+      try {
+        const [uploadResult, suggestResult] = await Promise.allSettled([
+          uploadSeriesCover(uri, family.id, id),
+          suggestBookMetadataFromImage(uri),
+        ]);
+
+        if (uploadResult.status === 'rejected') {
+          console.error('Failed to upload cover:', uploadResult.reason);
+          Alert.alert(t('common.error'), t('seriesDetail.failedToUpdateCover'));
+          return;
+        }
+
+        const downloadUrl = uploadResult.value;
+        const suggestions = suggestResult.status === 'fulfilled' ? suggestResult.value : null;
+        const hasTitleAndAuthor =
+          !!suggestions?.title?.trim() && !!suggestions?.author?.trim();
+
+        if (hasTitleAndAuthor && selectedMemberId) {
+          Alert.alert(
+            t('seriesDetail.addBookFromCoverTitle'),
+            t('seriesDetail.addBookFromCoverMessage', {
+              title: suggestions!.title!,
+              author: suggestions!.author!,
+            }),
+            [
+              {
+                text: t('seriesDetail.justUpdateCover'),
+                onPress: async () => {
+                  await editSeries(id, { thumbnailUrl: downloadUrl });
+                },
+              },
+              {
+                text: t('seriesDetail.addBookFromCoverAdd'),
+                onPress: async () => {
+                  try {
+                    const order = computeNextSeriesOrder(books);
+                    await addBook({
+                      title: suggestions!.title!,
+                      author: suggestions!.author!,
+                      thumbnailUrl: downloadUrl,
+                      seriesId: id,
+                      seriesOrder: order,
+                    });
+                    await editSeries(id, { thumbnailUrl: downloadUrl });
+                  } catch (err) {
+                    console.error('Failed to add book:', err);
+                    Alert.alert(t('common.error'), t('seriesDetail.failedToAddBook'));
+                  }
+                },
+              },
+            ]
+          );
+        } else {
+          await editSeries(id, { thumbnailUrl: downloadUrl });
+        }
+      } catch (error) {
+        console.error('Failed to upload cover:', error);
+        Alert.alert(t('common.error'), t('seriesDetail.failedToUpdateCover'));
+      } finally {
+        setIsUploadingCover(false);
+      }
+    },
+    [id, family, selectedMemberId, books, editSeries, addBook, t]
+  );
+
   const handlePickImage = useCallback(async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
@@ -253,28 +324,10 @@ export default function SeriesDetailScreen() {
       quality: 0.8,
     });
 
-    if (
-      !result.canceled &&
-      result.assets[0] &&
-      id &&
-      family
-    ) {
-      setIsUploadingCover(true);
-      try {
-        const downloadUrl = await uploadSeriesCover(
-          result.assets[0].uri,
-          family.id,
-          id
-        );
-        await editSeries(id, { thumbnailUrl: downloadUrl });
-      } catch (error) {
-        console.error('Failed to upload cover:', error);
-        Alert.alert(t('common.error'), t('seriesDetail.failedToUpdateCover'));
-      } finally {
-        setIsUploadingCover(false);
-      }
+    if (!result.canceled && result.assets[0] && id && family) {
+      await processCoverImage(result.assets[0].uri);
     }
-  }, [id, family, editSeries, t]);
+  }, [id, family, processCoverImage]);
 
   const handleTakePhoto = useCallback(async () => {
     const permission = await ImagePicker.requestCameraPermissionsAsync();
@@ -289,28 +342,10 @@ export default function SeriesDetailScreen() {
       quality: 0.8,
     });
 
-    if (
-      !result.canceled &&
-      result.assets[0] &&
-      id &&
-      family
-    ) {
-      setIsUploadingCover(true);
-      try {
-        const downloadUrl = await uploadSeriesCover(
-          result.assets[0].uri,
-          family.id,
-          id
-        );
-        await editSeries(id, { thumbnailUrl: downloadUrl });
-      } catch (error) {
-        console.error('Failed to upload cover:', error);
-        Alert.alert(t('common.error'), t('seriesDetail.failedToUpdateCover'));
-      } finally {
-        setIsUploadingCover(false);
-      }
+    if (!result.canceled && result.assets[0] && id && family) {
+      await processCoverImage(result.assets[0].uri);
     }
-  }, [id, family, editSeries, t]);
+  }, [id, family, processCoverImage, t]);
 
   const handleEditCover = useCallback(() => {
     Alert.alert(

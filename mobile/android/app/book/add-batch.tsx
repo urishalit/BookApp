@@ -9,6 +9,7 @@ import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useBatchAddStore } from '@/stores/batch-add-store';
 import { getActionOnCameraCancel } from '@/lib/batch-capture-utils';
+import { suggestBookMetadataFromImage } from '@/lib/book-cover-service';
 import { useThemeColor } from '@/hooks/use-theme-color';
 
 const CAMERA_OPTIONS = {
@@ -25,6 +26,7 @@ export default function AddBatchScreen() {
   const [isCapturing, setIsCapturing] = useState(false);
 
   const setStorePhotoUris = useBatchAddStore((s) => s.setPhotoUris);
+  const setSuggestionForIndex = useBatchAddStore((s) => s.setSuggestionForIndex);
   const hasLaunchedRef = useRef(false);
 
   const primaryColor = useThemeColor({ light: '#8B5A2B', dark: '#D4A574' }, 'text');
@@ -72,7 +74,12 @@ export default function AddBatchScreen() {
         const result = await ImagePicker.launchCameraAsync(CAMERA_OPTIONS);
 
         if (!result.canceled && result.assets[0]) {
-          const updatedUris = [...currentUris, result.assets[0].uri];
+          const uri = result.assets[0].uri;
+          const index = currentUris.length;
+          suggestBookMetadataFromImage(uri)
+            .then((suggestions) => setSuggestionForIndex(index, suggestions))
+            .catch(() => {});
+          const updatedUris = [...currentUris, uri];
           setPhotoUris(updatedUris);
           showContinueStopChoice(updatedUris);
         } else {

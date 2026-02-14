@@ -249,7 +249,11 @@
     "failedToAddBook": "הוספת הספר לספרייה נכשלה",
     "failedToUpdateGenres": "עדכון הז'אנרים נכשל",
     "removeBookFromSeries": "הסר ספר",
-    "removeBookFromSeriesConfirm": "להסיר את \"{{title}}\" מהסדרה הזו ומהספרייה שלך?"
+    "removeBookFromSeriesConfirm": "להסיר את \"{{title}}\" מהסדרה הזו ומהספרייה שלך?",
+    "addBookFromCoverTitle": "הוסף ספר לסדרה?",
+    "addBookFromCoverMessage": "להוסיף את \"{{title}}\" מאת {{author}}?",
+    "addBookFromCoverAdd": "הוסף ספר",
+    "justUpdateCover": "רק עדכן עטיפה"
   },
   "errors": {
     "generic": "משהו השתבש",

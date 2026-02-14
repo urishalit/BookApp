@@ -1,0 +1,14 @@
+{
+  "name": "ocr-extract",
+  "version": "1.0.0",
+  "description": "Extract text from images using Google Cloud Vision",
+  "bin": {
+    "extract-text": "./extract-text.js"
+  },
+  "scripts": {
+    "extract-text": "node extract-text.js"
+  },
+  "dependencies": {
+    "@google/genai": "^1.0.0"
+  }
+}

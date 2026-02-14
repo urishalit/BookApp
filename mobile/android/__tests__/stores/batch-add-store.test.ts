@@ -30,6 +30,21 @@ describe('batch-add-store', () => {
     });
   });
 
+  describe('setSuggestionForIndex', () => {
+    it('should store suggestion by index', () => {
+      const suggestion = {
+        title: 'Test Book',
+        author: 'Test Author',
+        series_name: null,
+        book_number_in_series: null,
+      };
+      useBatchAddStore.getState().setSuggestionForIndex(0, suggestion);
+
+      const { suggestionsByIndex } = useBatchAddStore.getState();
+      expect(suggestionsByIndex[0]).toEqual(suggestion);
+    });
+  });
+
   describe('reset', () => {
     it('should clear photoUris to empty array', () => {
       useBatchAddStore.getState().setPhotoUris(['uri1', 'uri2']);
@@ -37,6 +52,20 @@ describe('batch-add-store', () => {
 
       const { photoUris } = useBatchAddStore.getState();
       expect(photoUris).toEqual([]);
+    });
+
+    it('should clear suggestionsByIndex when reset', () => {
+      useBatchAddStore.getState().setPhotoUris(['uri1']);
+      useBatchAddStore.getState().setSuggestionForIndex(0, {
+        title: 'X',
+        author: 'Y',
+        series_name: null,
+        book_number_in_series: null,
+      });
+      useBatchAddStore.getState().reset();
+
+      const { suggestionsByIndex } = useBatchAddStore.getState();
+      expect(suggestionsByIndex).toEqual({});
     });
   });
 });

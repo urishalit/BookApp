@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import {
   View,
   StyleSheet,
@@ -25,6 +25,7 @@ import { useBookOperations } from '@/hooks/use-books';
 import { useFamily } from '@/hooks/use-family';
 import { useFamilyStore } from '@/stores/family-store';
 import { uploadBookCover } from '@/lib/storage';
+import { suggestBookMetadataFromImage } from '@/lib/book-cover-service';
 import { getAllStatuses, getStatusConfig } from '@/components/book-status-badge';
 import type { GoogleBookData } from '@/lib/google-books';
 import type { BookStatus } from '@/types/models';
@@ -142,6 +143,7 @@ export function SeriesBookSearchModal({
   const [manualCoverUri, setManualCoverUri] = useState<string | null>(null);
   const [manualSeriesOrder, setManualSeriesOrder] = useState(nextOrder);
   const [manualSeriesOrderInput, setManualSeriesOrderInput] = useState(String(nextOrder));
+  const suggestInFlightRef = useRef(false);
 
   const { query, setQuery, results, isLoading: isSearching, clearSearch } = useBookSearch();
 
@@ -163,6 +165,32 @@ export function SeriesBookSearchModal({
       setManualSeriesOrderInput(String(order));
     }
   }, [visible, nextOrder]);
+
+  useEffect(() => {
+    if (
+      manualCoverUri &&
+      !manualTitle.trim() &&
+      !manualAuthor.trim() &&
+      !suggestInFlightRef.current
+    ) {
+      suggestInFlightRef.current = true;
+      suggestBookMetadataFromImage(manualCoverUri)
+        .then((suggestions) => {
+          if (suggestions.title) setManualTitle(suggestions.title);
+          if (suggestions.author) setManualAuthor(suggestions.author);
+          if (
+            suggestions.book_number_in_series != null &&
+            suggestions.book_number_in_series >= 1
+          ) {
+            setManualSeriesOrderInput(String(suggestions.book_number_in_series));
+          }
+        })
+        .catch(() => {})
+        .finally(() => {
+          suggestInFlightRef.current = false;
+        });
+    }
+  }, [manualCoverUri, manualTitle, manualAuthor]);
 
   const toggleBookSelection = useCallback((book: GoogleBookData) => {
     setSelectedBooks((prev) => {

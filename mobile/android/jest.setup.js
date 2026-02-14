@@ -108,6 +108,25 @@ jest.mock('@react-native-firebase/firestore', () => {
   };
 });
 
+// Mock Firebase Functions
+jest.mock('@react-native-firebase/functions', () => {
+  const mockCallable = jest.fn(() => Promise.resolve({ data: {} }));
+  const mockHttpsCallable = jest.fn(() => mockCallable);
+  const functions = jest.fn(() => ({
+    httpsCallable: mockHttpsCallable,
+  }));
+  return {
+    __esModule: true,
+    default: functions,
+  };
+});
+
+// Mock expo-file-system
+jest.mock('expo-file-system', () => ({
+  readAsStringAsync: jest.fn(() => Promise.resolve('base64data')),
+  EncodingType: { Base64: 'base64' },
+}));
+
 // Mock Firebase Storage
 jest.mock('@react-native-firebase/storage', () => {
   const mockRef = {

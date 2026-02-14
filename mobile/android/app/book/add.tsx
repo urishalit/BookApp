@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
   View,
   StyleSheet,
@@ -24,6 +24,7 @@ import { useFamily } from '@/hooks/use-family';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { useFamilyStore } from '@/stores/family-store';
 import { uploadBookCover } from '@/lib/storage';
+import { suggestBookMetadataFromImage } from '@/lib/book-cover-service';
 import type { BookStatus } from '@/types/models';
 
 export default function AddBookScreen() {
@@ -41,6 +42,7 @@ export default function AddBookScreen() {
   const [seriesOrder, setSeriesOrder] = useState<number | undefined>();
   const [yearInput, setYearInput] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const suggestInFlightRef = useRef(false);
 
   const primaryColor = useThemeColor({ light: '#8B5A2B', dark: '#D4A574' }, 'text');
   const inputBg = useThemeColor({ light: '#F5F0EA', dark: '#1A2129' }, 'background');
@@ -79,6 +81,23 @@ export default function AddBookScreen() {
       setCoverUri(result.assets[0].uri);
     }
   }, [t]);
+
+  useEffect(() => {
+    if (coverUri && !title.trim() && !author.trim() && !suggestInFlightRef.current) {
+      suggestInFlightRef.current = true;
+      suggestBookMetadataFromImage(coverUri)
+        .then((suggestions) => {
+          if (suggestions.title) setTitle(suggestions.title);
+          if (suggestions.author) setAuthor(suggestions.author);
+        })
+        .catch(() => {
+          // Fail silently; user enters manually
+        })
+        .finally(() => {
+          suggestInFlightRef.current = false;
+        });
+    }
+  }, [coverUri, title, author]);
 
   const handleImageOptions = useCallback(() => {
     Alert.alert(
