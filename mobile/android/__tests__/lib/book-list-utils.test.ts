@@ -32,10 +32,18 @@ describe('book-list-utils', () => {
     booksInSeries,
     booksRead: booksInSeries.filter((b) => b.status === 'read').length,
     booksOwned: booksInSeries.length,
-    progressPercent: totalBooks > 0 
+    progressPercent: totalBooks > 0
       ? Math.round((booksInSeries.filter((b) => b.status === 'read').length / totalBooks) * 100)
       : 0,
     isInLibrary: booksInSeries.length > 0,
+    status:
+      booksInSeries.length === 0
+        ? 'to-read'
+        : booksInSeries.every((b) => b.status === 'read')
+          ? 'read'
+          : booksInSeries.some((b) => b.status === 'reading') || booksInSeries.some((b) => b.status === 'read')
+            ? 'reading'
+            : 'to-read',
   });
 
   // Books for Harry Potter series
@@ -74,12 +82,8 @@ describe('book-list-utils', () => {
     });
 
     it('should group books with same seriesId into a single series item', () => {
-      // Pass only one filtered book, but series should include all books
-      const filteredBooks: MemberBook[] = [
-        createBook({ id: 'hp-3', title: 'HP Book 3', seriesId: 'series-hp', seriesOrder: 3, status: 'reading' }),
-      ];
-
-      const result = groupBooksBySeries(filteredBooks, mockSeriesWithProgress);
+      // All books from series; series should include all books from seriesWithProgress
+      const result = groupBooksBySeries(hpBooks, mockSeriesWithProgress);
 
       expect(result).toHaveLength(1);
       expect(result[0].type).toBe('series');
@@ -91,10 +95,8 @@ describe('book-list-utils', () => {
     });
 
     it('should use complete booksInSeries from seriesWithProgress, not filtered books', () => {
-      // Filter to only "reading" books
-      const readingBooks = hpBooks.filter((b) => b.status === 'reading');
-
-      const result = groupBooksBySeries(readingBooks, mockSeriesWithProgress);
+      // Pass all books; series item uses complete booksInSeries from seriesWithProgress
+      const result = groupBooksBySeries(hpBooks, mockSeriesWithProgress);
 
       expect(result).toHaveLength(1);
       if (result[0].type === 'series') {
@@ -209,18 +211,51 @@ describe('book-list-utils', () => {
       expect(result).toHaveLength(2);
     });
 
-    it('should show series when any book in series matches filter', () => {
-      // Only the "reading" book matches the filter
-      const filteredBooks: MemberBook[] = [hpBooks[2]]; // HP Book 3 (reading)
-
-      const result = groupBooksBySeries(filteredBooks, mockSeriesWithProgress);
+    it('should show series when it has books in library (all mode)', () => {
+      const result = groupBooksBySeries(hpBooks, mockSeriesWithProgress);
 
       expect(result).toHaveLength(1);
       expect(result[0].type).toBe('series');
       if (result[0].type === 'series') {
-        // Series should still have all 3 books for accurate progress
         expect(result[0].books).toHaveLength(3);
       }
+    });
+
+    it('should include series with status reading when filter is reading, even if no book is reading', () => {
+      const seriesReadingStatus: SeriesWithProgress[] = [
+        { ...mockSeriesWithProgress[0], status: 'reading' as const },
+      ];
+
+      const result = groupBooksBySeries(hpBooks, seriesReadingStatus, 'reading');
+
+      expect(result).toHaveLength(1);
+      expect(result[0].type).toBe('series');
+      if (result[0].type === 'series') {
+        expect(result[0].series.id).toBe('series-hp');
+        expect(result[0].series.status).toBe('reading');
+      }
+    });
+
+    it('series status trumps: series with status reading does NOT appear in Read tab', () => {
+      // HP series has 2 read + 1 reading; user set series status to "reading"
+      const seriesWithReadingStatus: SeriesWithProgress[] = [
+        { ...mockSeriesWithProgress[0], status: 'reading' as const },
+      ];
+
+      const result = groupBooksBySeries(hpBooks, seriesWithReadingStatus, 'read');
+
+      // Series should NOT appear in Read tab despite having read books
+      expect(result).toHaveLength(0);
+    });
+
+    it('series status trumps: series with status read does NOT appear in Reading tab', () => {
+      const seriesWithReadStatus: SeriesWithProgress[] = [
+        { ...mockSeriesWithProgress[0], status: 'read' as const },
+      ];
+
+      const result = groupBooksBySeries(hpBooks, seriesWithReadStatus, 'reading');
+
+      expect(result).toHaveLength(0);
     });
   });
 

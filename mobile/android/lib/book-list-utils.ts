@@ -1,49 +1,62 @@
-import type { MemberBook, Series } from '@/types/models';
+import type { MemberBook } from '@/types/models';
 import type { SeriesWithProgress } from '@/hooks/use-series';
+import type { BookStatus } from '@/types/models';
 
 /** Union type for list items: either a standalone book or a collapsed series */
 export type BookListItem =
   | { type: 'book'; book: MemberBook }
-  | { type: 'series'; series: Series; books: MemberBook[] };
+  | { type: 'series'; series: SeriesWithProgress; books: MemberBook[] };
 
 /**
  * Groups books by series and creates a combined list of items.
  * Books with a seriesId are collapsed into a single series item.
  * Books without a seriesId are shown as individual book items.
- * 
- * @param filteredBooks - Array of books matching current filter (for display purposes)
+ *
+ * Series status trumps book status: when statusFilter is set, a series appears only in the tab
+ * matching its series.status, regardless of individual book statuses. A series with status
+ * 'reading' won't appear in Read or To read tabs even if some books are read or to-read.
+ *
+ * @param allBooks - All books in the member's library (unfiltered)
  * @param seriesWithProgress - Array of series with complete book data (for accurate progress)
- * @returns Array of BookListItems sorted with series first (alphabetically), 
+ * @param statusFilter - Optional status filter; when set, series are filtered by series.status
+ * @returns Array of BookListItems sorted with series first (alphabetically),
  *          then standalone books (by addedAt descending)
  */
 export function groupBooksBySeries(
-  filteredBooks: MemberBook[],
-  seriesWithProgress: SeriesWithProgress[]
+  allBooks: MemberBook[],
+  seriesWithProgress: SeriesWithProgress[],
+  statusFilter?: BookStatus | 'all'
 ): BookListItem[] {
   const items: BookListItem[] = [];
-  const seriesIdsWithMatchingBooks = new Set<string>();
-  const standaloneBooks: MemberBook[] = [];
+  const seriesIdsToShow = new Set<string>();
+  let standaloneBooks: MemberBook[];
 
-  // Separate books into series groups and standalone
-  for (const book of filteredBooks) {
-    if (book.seriesId) {
-      seriesIdsWithMatchingBooks.add(book.seriesId);
-    } else {
-      standaloneBooks.push(book);
+  if (statusFilter && statusFilter !== 'all') {
+    // Series status trumps: series appear only when series.status matches the filter
+    standaloneBooks = allBooks.filter((b) => !b.seriesId && b.status === statusFilter);
+    for (const s of seriesWithProgress) {
+      if (s.status === statusFilter && s.booksOwned > 0) {
+        seriesIdsToShow.add(s.id);
+      }
+    }
+  } else {
+    // No filter: include all standalone books and all series with owned books
+    standaloneBooks = allBooks.filter((b) => !b.seriesId);
+    for (const book of allBooks) {
+      if (book.seriesId) seriesIdsToShow.add(book.seriesId);
     }
   }
 
-  // Add series items that have at least one book matching the filter
-  // Use COMPLETE booksInSeries from seriesWithProgress for accurate progress
-  for (const seriesId of seriesIdsWithMatchingBooks) {
+  // Add series items. Use COMPLETE booksInSeries from seriesWithProgress for accurate progress.
+  for (const seriesId of seriesIdsToShow) {
     const seriesData = seriesWithProgress.find((s) => s.id === seriesId);
     if (seriesData) {
       // Pass ALL books in series, not just filtered ones
       items.push({ type: 'series', series: seriesData, books: seriesData.booksInSeries });
     } else {
-      // Fallback: if series metadata not found, show filtered books individually
-      const filteredSeriesBooks = filteredBooks.filter((b) => b.seriesId === seriesId);
-      for (const book of filteredSeriesBooks) {
+      // Fallback: if series metadata not found, show books in that series individually
+      const seriesBooks = allBooks.filter((b) => b.seriesId === seriesId);
+      for (const book of seriesBooks) {
         items.push({ type: 'book', book });
       }
     }

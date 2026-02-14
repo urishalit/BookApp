@@ -193,6 +193,13 @@
     "toRead": "לקריאה",
     "read": "נקרא"
   },
+  "seriesStatus": {
+    "toRead": "לקריאה",
+    "reading": "קורא",
+    "read": "נקרא",
+    "stopped": "הופסק",
+    "changeStatus": "שנה סטטוס סדרה"
+  },
   "seriesCard": {
     "booksInSeries_one": "ספר {{count}} בסדרה",
     "booksInSeries_other": "{{count}} ספרים בסדרה",

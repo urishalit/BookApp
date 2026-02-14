@@ -9,10 +9,13 @@ import {
   getSeriesBooksFromCatalog,
   addSeriesToMemberLibrary,
   onFamilyBooksSnapshot,
+  onMemberSeriesStatusSnapshot,
+  setMemberSeriesStatus,
   computeSeriesTotalBooksFromBooks,
 } from '@/lib/firestore';
 import { useBooksListener } from '@/hooks/use-books';
-import type { Series, MemberBook, FamilyBook, CreateSeries, SeriesBookDisplay } from '@/types/models';
+import { deriveSeriesStatus } from '@/lib/series-status-utils';
+import type { Series, MemberBook, FamilyBook, CreateSeries, SeriesBookDisplay, SeriesStatus } from '@/types/models';
 
 interface SeriesState {
   series: Series[];
@@ -62,6 +65,7 @@ export interface SeriesWithProgress extends Series {
   booksOwned: number;
   progressPercent: number;
   isInLibrary: boolean; // Whether the member has any books from this series
+  status: SeriesStatus; // Derived or stored per-member status
 }
 
 /**
@@ -70,10 +74,13 @@ export interface SeriesWithProgress extends Series {
  */
 export function useSeries() {
   const family = useFamilyStore((s) => s.family);
+  const selectedMemberId = useFamilyStore((s) => s.selectedMemberId);
   const { series, isLoading, error } = useSeriesListener();
   const { books } = useBooksListener();
 
   const [familyBooks, setFamilyBooks] = useState<FamilyBook[]>([]);
+  const [seriesStatusMap, setSeriesStatusMap] = useState<Map<string, SeriesStatus>>(new Map());
+
   useEffect(() => {
     if (!family) {
       setFamilyBooks([]);
@@ -82,6 +89,15 @@ export function useSeries() {
     const unsubscribe = onFamilyBooksSnapshot(family.id, setFamilyBooks);
     return unsubscribe;
   }, [family]);
+
+  useEffect(() => {
+    if (!family || !selectedMemberId) {
+      setSeriesStatusMap(new Map());
+      return;
+    }
+    const unsubscribe = onMemberSeriesStatusSnapshot(family.id, selectedMemberId, setSeriesStatusMap);
+    return unsubscribe;
+  }, [family, selectedMemberId]);
 
   // Calculate series with progress for selected member
   // totalBooks is computed from family books (max seriesOrder) for correct display
@@ -97,6 +113,9 @@ export function useSeries() {
       const progressPercent =
         totalBooks > 0 ? Math.round((booksRead / totalBooks) * 100) : 0;
 
+      const storedStatus = seriesStatusMap.get(s.id) ?? null;
+      const status = deriveSeriesStatus(booksInSeries, storedStatus);
+
       return {
         ...s,
         totalBooks,
@@ -105,9 +124,10 @@ export function useSeries() {
         booksOwned,
         progressPercent,
         isInLibrary: booksOwned > 0,
+        status,
       };
     });
-  }, [series, books, familyBooks]);
+  }, [series, books, familyBooks, seriesStatusMap]);
 
   return {
     series: seriesWithProgress,
@@ -190,6 +210,16 @@ export function useSeriesOperations() {
     [family]
   );
 
+  const updateSeriesStatus = useCallback(
+    async (seriesId: string, status: SeriesStatus) => {
+      if (!family) throw new Error('No family loaded');
+      if (!selectedMemberId) throw new Error('No member selected');
+
+      await setMemberSeriesStatus(family.id, selectedMemberId, seriesId, status);
+    },
+    [family, selectedMemberId]
+  );
+
   return {
     addSeries,
     editSeries,
@@ -197,6 +227,7 @@ export function useSeriesOperations() {
     fetchSeries,
     addSeriesToLibrary,
     getSeriesBooks,
+    updateSeriesStatus,
   };
 }
 

@@ -19,15 +19,17 @@ import { useSeries, useSeriesOperations, SeriesWithProgress } from '@/hooks/use-
 import { useFamily } from '@/hooks/use-family';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { filterSeries, type LibraryTab } from '@/lib/series-filter-utils';
+import type { SeriesStatus } from '@/types/models';
 
 export default function SeriesScreen() {
   const { t } = useTranslation();
   const router = useRouter();
   const { family, selectedMember, selectedMemberId } = useFamily();
   const { series, isLoading, error, totalSeries } = useSeries();
-  const { removeSeries, addSeriesToLibrary } = useSeriesOperations();
+  const { removeSeries, addSeriesToLibrary, updateSeriesStatus } = useSeriesOperations();
   const [addingSeriesId, setAddingSeriesId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<LibraryTab>('inLibrary');
+  const [statusFilter, setStatusFilter] = useState<SeriesStatus | 'all'>('all');
   const [searchQuery, setSearchQuery] = useState('');
 
   const displayedSeries = useMemo(() => {
@@ -38,8 +40,8 @@ export default function SeriesScreen() {
     if (!selectedMemberId) {
       return series;
     }
-    return filterSeries(series, activeTab, searchQuery);
-  }, [series, activeTab, searchQuery, selectedMemberId]);
+    return filterSeries(series, activeTab, searchQuery, statusFilter);
+  }, [series, activeTab, searchQuery, selectedMemberId, statusFilter]);
 
   const inLibraryCount = useMemo(
     () => series.filter((s) => s.isInLibrary).length,
@@ -139,6 +141,17 @@ export default function SeriesScreen() {
     [selectedMemberId, selectedMember, addSeriesToLibrary, router, t]
   );
 
+  const handleSeriesStatusChange = useCallback(
+    async (item: SeriesWithProgress, status: import('@/types/models').SeriesStatus) => {
+      try {
+        await updateSeriesStatus(item.id, status);
+      } catch (err) {
+        Alert.alert(t('common.error'), t('seriesDetail.failedToUpdate'));
+      }
+    },
+    [updateSeriesStatus, t]
+  );
+
   const renderSeries = useCallback(
     ({ item }: { item: SeriesWithProgress }) => (
       <SeriesCard
@@ -146,10 +159,11 @@ export default function SeriesScreen() {
         onPress={() => handleSeriesPress(item)}
         onLongPress={() => handleDeleteSeries(item)}
         onAddToLibrary={() => handleAddToLibrary(item)}
+        onStatusChange={(status) => handleSeriesStatusChange(item, status)}
         showAddButton={!!selectedMemberId}
       />
     ),
-    [handleSeriesPress, handleDeleteSeries, handleAddToLibrary, selectedMemberId]
+    [handleSeriesPress, handleDeleteSeries, handleAddToLibrary, handleSeriesStatusChange, selectedMemberId]
   );
 
   const renderEmptyState = () => {
@@ -328,6 +342,32 @@ export default function SeriesScreen() {
         </View>
       )}
 
+      {/* Status filter tabs (when in library) */}
+      {family && selectedMemberId && activeTab === 'inLibrary' && inLibraryCount > 0 && (
+        <View style={[styles.statusTabContainer, { borderColor: tabBorderColor }]}>
+          {(['all', 'reading', 'to-read', 'read', 'stopped'] as const).map((s) => (
+            <Pressable
+              key={s}
+              style={[
+                styles.statusTab,
+                statusFilter === s && { borderBottomColor: primaryColor, borderBottomWidth: 2 },
+              ]}
+              onPress={() => setStatusFilter(s)}
+            >
+              <ThemedText
+                style={[
+                  styles.statusTabLabel,
+                  { color: statusFilter === s ? primaryColor : inactiveTabColor },
+                ]}
+                numberOfLines={1}
+              >
+                {s === 'all' ? t('books.all') : t(`seriesStatus.${s === 'to-read' ? 'toRead' : s}`)}
+              </ThemedText>
+            </Pressable>
+          ))}
+        </View>
+      )}
+
       {/* Tabs */}
       {family && selectedMemberId && (
         <View style={[styles.tabContainer, { borderColor: tabBorderColor }]}>
@@ -490,6 +530,23 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 16,
     padding: 0,
+  },
+  statusTabContainer: {
+    flexDirection: 'row',
+    marginHorizontal: 16,
+    marginBottom: 4,
+    borderBottomWidth: 1,
+  },
+  statusTab: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: 8,
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
+  },
+  statusTabLabel: {
+    fontSize: 12,
+    fontWeight: '500',
   },
   tabContainer: {
     flexDirection: 'row',

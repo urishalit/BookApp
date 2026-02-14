@@ -169,6 +169,13 @@
     "booksRead": "{{read}} of {{total}} read",
     "progress": "{{percent}}% complete"
   },
+  "seriesStatus": {
+    "toRead": "To read",
+    "reading": "Reading",
+    "read": "Read",
+    "stopped": "Stopped",
+    "changeStatus": "Change series status"
+  },
   "createSeries": {
     "title": "Create Series",
     "seriesName": "Series Name",

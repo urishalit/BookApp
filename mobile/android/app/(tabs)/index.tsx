@@ -18,7 +18,7 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import { AddBookDropdown } from '@/components/add-book-dropdown';
 import { useBooks, useBookOperations, getNextStatus } from '@/hooks/use-books';
 import { getRouteForAddMode } from '@/lib/add-book-utils';
-import { useSeries } from '@/hooks/use-series';
+import { useSeries, useSeriesOperations } from '@/hooks/use-series';
 import { useFamily } from '@/hooks/use-family';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { groupBooksBySeries, getBookListItemKey, type BookListItem } from '@/lib/book-list-utils';
@@ -32,9 +32,10 @@ export default function BooksScreen() {
   const [activeFilter, setActiveFilter] = useState<FilterTab>('all');
   
   const { selectedMember, selectedMemberId } = useFamily();
-  const { books, counts, isLoading, error } = useBooks(activeFilter);
+  const { books, counts, isLoading, error } = useBooks('all'); // All books; filtering by series status happens in groupBooksBySeries
   const { series: seriesWithProgress } = useSeries();
   const { removeBook, updateBookStatus } = useBookOperations();
+  const { updateSeriesStatus } = useSeriesOperations();
 
   const primaryColor = useThemeColor({ light: '#8B5A2B', dark: '#D4A574' }, 'text');
   const backgroundColor = useThemeColor({}, 'background');
@@ -49,9 +50,31 @@ export default function BooksScreen() {
    * Uses complete series data for accurate progress even when filtered.
    */
   const listItems = useMemo(
-    () => groupBooksBySeries(books, seriesWithProgress),
-    [books, seriesWithProgress]
+    () => groupBooksBySeries(books, seriesWithProgress, activeFilter === 'all' ? undefined : activeFilter),
+    [books, seriesWithProgress, activeFilter]
   );
+
+  /**
+   * Tab counts: series status trumps. Each tab = standalone items with that status + series with that status (no duplication).
+   */
+  const displayCounts = useMemo(() => {
+    const standaloneByStatus = {
+      reading: books.filter((b) => !b.seriesId && b.status === 'reading').length,
+      'to-read': books.filter((b) => !b.seriesId && b.status === 'to-read').length,
+      read: books.filter((b) => !b.seriesId && b.status === 'read').length,
+    };
+    const seriesByStatus = {
+      reading: seriesWithProgress.filter((s) => s.booksOwned > 0 && s.status === 'reading').length,
+      'to-read': seriesWithProgress.filter((s) => s.booksOwned > 0 && s.status === 'to-read').length,
+      read: seriesWithProgress.filter((s) => s.booksOwned > 0 && s.status === 'read').length,
+    };
+    return {
+      ...counts,
+      reading: standaloneByStatus.reading + seriesByStatus.reading,
+      'to-read': standaloneByStatus['to-read'] + seriesByStatus['to-read'],
+      read: standaloneByStatus.read + seriesByStatus.read,
+    };
+  }, [counts, books, seriesWithProgress]);
 
   const handleBookPress = useCallback(
     (book: MemberBook) => {
@@ -83,6 +106,17 @@ export default function BooksScreen() {
       }
     },
     [updateBookStatus, t]
+  );
+
+  const handleSeriesStatusChange = useCallback(
+    async (seriesId: string, status: import('@/types/models').SeriesStatus) => {
+      try {
+        await updateSeriesStatus(seriesId, status);
+      } catch (err) {
+        Alert.alert(t('common.error'), t('books.failedToUpdateStatus'));
+      }
+    },
+    [updateSeriesStatus, t]
   );
 
   const handleDeleteBook = useCallback(
@@ -140,6 +174,7 @@ export default function BooksScreen() {
             series={item.series}
             booksInSeries={item.books}
             onPress={() => handleSeriesPress(item.series)}
+            onStatusChange={(status) => handleSeriesStatusChange(item.series.id, status)}
           />
         );
       }
@@ -152,7 +187,7 @@ export default function BooksScreen() {
         />
       );
     },
-    [handleBookPress, handleSeriesPress, handleDeleteBook, handleStatusPress]
+    [handleBookPress, handleSeriesPress, handleDeleteBook, handleStatusPress, handleSeriesStatusChange]
   );
 
   const renderEmptyState = () => {
@@ -216,7 +251,7 @@ export default function BooksScreen() {
     <View style={[styles.tabContainer, { borderColor: tabBorderColor }]}>
       {filterTabs.map((tab) => {
         const isActive = activeFilter === tab.key;
-        const count = counts[tab.key];
+        const count = displayCounts[tab.key];
         
         return (
           <Pressable

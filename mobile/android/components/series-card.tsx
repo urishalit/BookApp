@@ -4,6 +4,7 @@ import { Image } from 'expo-image';
 import { useTranslation } from 'react-i18next';
 import { ThemedText } from '@/components/themed-text';
 import { SeriesProgress } from '@/components/series-progress';
+import { SeriesStatusBadge } from '@/components/series-status-badge';
 import { GenreBadgeList } from '@/components/genre-badge';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useThemeColor } from '@/hooks/use-theme-color';
@@ -16,6 +17,7 @@ interface SeriesCardProps {
   onPress?: () => void;
   onLongPress?: () => void;
   onAddToLibrary?: () => void;
+  onStatusChange?: (status: import('@/types/models').SeriesStatus) => void;
   showAddButton?: boolean;
 }
 
@@ -26,6 +28,7 @@ export function SeriesCard({
   onPress, 
   onLongPress, 
   onAddToLibrary,
+  onStatusChange,
   showAddButton = true,
 }: SeriesCardProps) {
   const { t } = useTranslation();
@@ -107,8 +110,17 @@ export function SeriesCard({
           )}
         </View>
 
-        {/* Footer: Progress or Add Button */}
+        {/* Footer: Status, Progress or Add Button */}
         <View style={styles.footer}>
+          {series.isInLibrary && (
+            <View style={styles.statusRow}>
+              <SeriesStatusBadge
+                status={series.status}
+                size="small"
+                onStatusChange={onStatusChange}
+              />
+            </View>
+          )}
           {series.isInLibrary ? (
             <SeriesProgress
               booksRead={series.booksRead}
@@ -221,6 +233,11 @@ const styles = StyleSheet.create({
   },
   footer: {
     marginTop: 8,
+    gap: 8,
+  },
+  statusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   addButton: {
     flexDirection: 'row',

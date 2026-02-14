@@ -8,13 +8,16 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { getGenresByFrequency } from '@/constants/genres';
 import { getSeriesCoverFromBooks } from '@/lib/series-cover-utils';
+import { SeriesStatusBadge } from '@/components/series-status-badge';
 import type { MemberBook, Series } from '@/types/models';
+import type { SeriesWithProgress } from '@/hooks/use-series';
 
 interface SeriesRowProps {
-  series: Series;
+  series: Series | SeriesWithProgress;
   booksInSeries: MemberBook[];
   onPress?: () => void;
   onLongPress?: () => void;
+  onStatusChange?: (status: import('@/types/models').SeriesStatus) => void;
 }
 
 /**
@@ -22,7 +25,7 @@ interface SeriesRowProps {
  * Shows series name, stacked covers preview, and progress badge.
  * Used to collapse multiple books into a single row.
  */
-export function SeriesRow({ series, booksInSeries, onPress, onLongPress }: SeriesRowProps) {
+export function SeriesRow({ series, booksInSeries, onPress, onLongPress, onStatusChange }: SeriesRowProps) {
   const { t } = useTranslation();
   const cardBackground = useThemeColor({}, 'background');
   const borderColor = useThemeColor(
@@ -96,8 +99,15 @@ export function SeriesRow({ series, booksInSeries, onPress, onLongPress }: Serie
             {series.name}
           </ThemedText>
 
-          {/* Row 1: Read count */}
+          {/* Row 1: Status badge + Read count */}
           <View style={styles.statusRow}>
+            {'status' in series && onStatusChange ? (
+              <SeriesStatusBadge
+                status={series.status}
+                size="small"
+                onStatusChange={onStatusChange}
+              />
+            ) : null}
             <IconSymbol name="checkmark.circle.fill" size={14} color={primaryColor} />
             <ThemedText style={[styles.statusText, { color: subtitleColor }]}>
               {t('series.booksRead', { read: booksRead, total: series.totalBooks })}

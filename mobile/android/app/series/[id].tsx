@@ -21,6 +21,7 @@ import { SeriesProgress } from '@/components/series-progress';
 import { GenreBadge } from '@/components/genre-badge';
 import { GenrePicker } from '@/components/genre-picker';
 import { SeriesBookSearchModal } from '@/components/series-book-search-modal';
+import { SeriesStatusBadge } from '@/components/series-status-badge';
 import { useSeriesDetail, useSeriesOperations } from '@/hooks/use-series';
 import { useBookOperations, getNextStatus } from '@/hooks/use-books';
 import { useFamilyStore } from '@/stores/family-store';
@@ -38,7 +39,7 @@ export default function SeriesDetailScreen() {
   const router = useRouter();
   const family = useFamilyStore((s) => s.family);
   const { series, books, isLoading } = useSeriesDetail(id);
-  const { editSeries, removeSeries } = useSeriesOperations();
+  const { editSeries, removeSeries, updateSeriesStatus } = useSeriesOperations();
   const { addOrUpdateBookStatus, updateSeriesBooksGenres, addBooksToSeries } = useBookOperations();
 
   const [isEditing, setIsEditing] = useState(false);
@@ -305,6 +306,19 @@ export default function SeriesDetailScreen() {
     );
   }, [t, handlePickImage, handleTakePhoto]);
 
+  const handleSeriesStatusChange = useCallback(
+    async (newStatus: import('@/types/models').SeriesStatus) => {
+      if (!id) return;
+      try {
+        await updateSeriesStatus(id, newStatus);
+      } catch (error) {
+        console.error('Failed to update series status:', error);
+        Alert.alert(t('common.error'), t('seriesDetail.failedToUpdate'));
+      }
+    },
+    [id, updateSeriesStatus, t]
+  );
+
   const handlePickBookCover = useCallback(
     async (book: SeriesBookDisplay) => {
       if (!id || !book.thumbnailUrl) return;
@@ -416,6 +430,15 @@ export default function SeriesDetailScreen() {
           <ThemedText style={[styles.bookCount, { color: subtitleColor }]}>
             {t('seriesDetail.booksInSeries', { count: series.totalBooks })}
           </ThemedText>
+        )}
+
+        {/* Series Status (always visible when member has books - tappable to change) */}
+        {'status' in series && series.booksOwned > 0 && (
+          <SeriesStatusBadge
+            status={series.status}
+            size="medium"
+            onStatusChange={handleSeriesStatusChange}
+          />
         )}
 
         {/* Progress */}

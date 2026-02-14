@@ -11,10 +11,12 @@ jest.mock('@/lib/firestore', () => {
     ...actual,
     createSeries: jest.fn(),
     updateSeries: jest.fn(),
+    setMemberSeriesStatus: jest.fn(),
     deleteSeries: jest.fn(),
     getSeriesById: jest.fn(),
     onSeriesSnapshot: jest.fn(),
     onMemberLibrarySnapshot: jest.fn(),
+    onMemberSeriesStatusSnapshot: jest.fn(),
     onFamilyBooksSnapshot: jest.fn(),
     getSeriesBooksFromCatalog: jest.fn(),
     addSeriesToMemberLibrary: jest.fn(),
@@ -80,6 +82,12 @@ describe('use-series hooks', () => {
       callback(mockLibraryEntries);
       return jest.fn();
     });
+
+    // Default mock implementation for series status snapshot (empty map)
+    (firestore.onMemberSeriesStatusSnapshot as jest.Mock).mockImplementation((_familyId, _memberId, callback) => {
+      callback(new Map());
+      return jest.fn();
+    });
   });
 
   describe('useSeries', () => {
@@ -98,6 +106,8 @@ describe('use-series hooks', () => {
       expect(harryPotterSeries?.progressPercent).toBe(33);
       expect(harryPotterSeries?.totalBooks).toBe(3);
       expect(harryPotterSeries?.isInLibrary).toBe(true);
+      expect(harryPotterSeries?.status).toBeDefined();
+      expect(['to-read', 'reading', 'read', 'stopped']).toContain(harryPotterSeries?.status);
     });
 
     it('should return series with zero progress when no member selected', async () => {
@@ -272,6 +282,23 @@ describe('use-series hooks', () => {
         'member-1',
         'series-1',
         'to-read'
+      );
+    });
+
+    it('should update series status', async () => {
+      (firestore.setMemberSeriesStatus as jest.Mock).mockResolvedValue(undefined);
+
+      const { result } = renderHook(() => useSeriesOperations());
+
+      await act(async () => {
+        await result.current.updateSeriesStatus('series-1', 'reading');
+      });
+
+      expect(firestore.setMemberSeriesStatus).toHaveBeenCalledWith(
+        'family-1',
+        'member-1',
+        'series-1',
+        'reading'
       );
     });
   });

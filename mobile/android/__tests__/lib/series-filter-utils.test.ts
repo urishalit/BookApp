@@ -3,11 +3,13 @@ import { filterSeries } from '../../lib/series-filter-utils';
 const createSeries = (
   id: string,
   name: string,
-  isInLibrary: boolean
+  isInLibrary: boolean,
+  status?: 'to-read' | 'reading' | 'read' | 'stopped'
 ) => ({
   id,
   name,
   isInLibrary,
+  ...(status && { status }),
 });
 
 describe('series-filter-utils', () => {
@@ -96,6 +98,29 @@ describe('series-filter-utils', () => {
       it('should return empty array when input is empty', () => {
         expect(filterSeries([], 'inLibrary', '')).toEqual([]);
         expect(filterSeries([], 'notInLibrary', 'search')).toEqual([]);
+      });
+    });
+
+    describe('status filter', () => {
+      it('should filter by status when on inLibrary tab and statusFilter provided', () => {
+        const seriesWithStatus = [
+          createSeries('1', 'Reading Series', true, 'reading'),
+          createSeries('2', 'Read Series', true, 'read'),
+          createSeries('3', 'To Read Series', true, 'to-read'),
+        ];
+        const result = filterSeries(seriesWithStatus, 'inLibrary', '', 'reading');
+        expect(result).toHaveLength(1);
+        expect(result[0].name).toBe('Reading Series');
+        expect((result[0] as { status?: string }).status).toBe('reading');
+      });
+
+      it('should not apply status filter when statusFilter is all', () => {
+        const seriesWithStatus = [
+          createSeries('1', 'A', true, 'reading'),
+          createSeries('2', 'B', true, 'read'),
+        ];
+        const result = filterSeries(seriesWithStatus, 'inLibrary', '', 'all');
+        expect(result).toHaveLength(2);
       });
     });
   });

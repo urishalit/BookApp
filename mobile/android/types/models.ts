@@ -4,6 +4,9 @@ export type Timestamp = FirebaseFirestoreTypes.Timestamp;
 
 export type BookStatus = 'reading' | 'read' | 'to-read';
 
+/** Per-member series reading status */
+export type SeriesStatus = 'to-read' | 'reading' | 'read' | 'stopped';
+
 export interface Family {
   id: string;
   name: string;

@@ -8,6 +8,7 @@ import type {
   MemberBook,
   Series, 
   BookStatus,
+  SeriesStatus,
   CreateFamily, 
   CreateMember, 
   CreateFamilyBook,
@@ -25,6 +26,8 @@ export const familyBooksCollection = (familyId: string) =>
   firestore().collection('families').doc(familyId).collection('books');
 export const memberLibraryCollection = (familyId: string, memberId: string) =>
   firestore().collection('families').doc(familyId).collection('members').doc(memberId).collection('library');
+export const memberSeriesStatusCollection = (familyId: string, memberId: string) =>
+  firestore().collection('families').doc(familyId).collection('members').doc(memberId).collection('seriesStatus');
 export const seriesCollection = (familyId: string) =>
   firestore().collection('families').doc(familyId).collection('series');
 
@@ -378,6 +381,46 @@ export async function addSeriesToMemberLibrary(
   }
   
   return { added, skipped };
+}
+
+// ============================================================================
+// Member series status (per-member series reading status)
+// ============================================================================
+
+export async function getMemberSeriesStatus(
+  familyId: string,
+  memberId: string,
+  seriesId: string
+): Promise<SeriesStatus | null> {
+  const doc = await memberSeriesStatusCollection(familyId, memberId).doc(seriesId).get();
+  if (!doc.exists || !doc.data()?.status) return null;
+  return doc.data()?.status as SeriesStatus;
+}
+
+export async function setMemberSeriesStatus(
+  familyId: string,
+  memberId: string,
+  seriesId: string,
+  status: SeriesStatus
+): Promise<void> {
+  await memberSeriesStatusCollection(familyId, memberId).doc(seriesId).set({ status });
+}
+
+export function onMemberSeriesStatusSnapshot(
+  familyId: string,
+  memberId: string,
+  callback: (statusMap: Map<string, SeriesStatus>) => void
+): () => void {
+  if (!familyId || !memberId) return () => {};
+  return memberSeriesStatusCollection(familyId, memberId)
+    .onSnapshot((snapshot: QuerySnapshot) => {
+      const map = new Map<string, SeriesStatus>();
+      for (const doc of snapshot.docs) {
+        const status = doc.data()?.status;
+        if (status) map.set(doc.id, status as SeriesStatus);
+      }
+      callback(map);
+    });
 }
 
 // ============================================================================
