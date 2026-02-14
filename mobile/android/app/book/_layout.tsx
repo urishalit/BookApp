@@ -22,6 +22,13 @@ export default function BookLayout() {
         }}
       />
       <Stack.Screen
+        name="add-batch"
+        options={{
+          title: 'Capture Book Covers',
+          presentation: 'modal',
+        }}
+      />
+      <Stack.Screen
         name="add"
         options={{
           title: 'Add Book',
@@ -32,6 +39,13 @@ export default function BookLayout() {
         name="add-from-search"
         options={{
           title: 'Add Book',
+          presentation: 'modal',
+        }}
+      />
+      <Stack.Screen
+        name="add-batch-wizard"
+        options={{
+          title: 'Add Books',
           presentation: 'modal',
         }}
       />

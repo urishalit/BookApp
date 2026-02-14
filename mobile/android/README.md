@@ -35,6 +35,36 @@ npm run reset-project
 
 This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
 
+## Import library from CSV
+
+To import book library data from a CSV file into an existing Firestore family:
+
+1. **Download a service account key** from [Firebase Console](https://console.firebase.google.com/) → Project Settings → Service Accounts → Generate new private key
+
+2. **Set the credentials path** (required):
+   ```bash
+   export GOOGLE_APPLICATION_CREDENTIALS=/path/to/serviceAccountKey.json
+   ```
+
+3. **Get your family ID** from Firestore (`families` collection) or from the app
+
+4. **Run the import**:
+   ```bash
+   npm run import-csv -- /path/to/your-file.csv --family-id=YOUR_FAMILY_ID
+   ```
+
+5. **Optional: dry run first** to preview without making changes:
+   ```bash
+   npm run import-csv -- /path/to/your-file.csv --family-id=YOUR_FAMILY_ID --dry-run
+   ```
+
+The script:
+- Uses existing members by name (creates only when no match)
+- Downloads cover images from CSV URLs and uploads them to Firebase Storage
+- Creates series, books, and library entries according to the CSV structure
+
+Expected CSV columns: `Type`, `Child Name`, `Book Title`, `Author`, `Genre`, `Status`, `Book Type`, `Series Name`, `Number in Series`, `Image URL`, etc. Status values: `רוצה לקרוא` (to-read), `קורא כעת` (reading), `קרא` (read).
+
 ## Learn more
 
 To learn more about developing your project with Expo, look at the following resources:

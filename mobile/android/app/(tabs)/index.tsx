@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useRef } from 'react';
 import {
   View,
   FlatList,
@@ -15,7 +15,9 @@ import { BookCard } from '@/components/book-card';
 import { SeriesRow } from '@/components/series-row';
 import { MemberPicker } from '@/components/member-picker';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { AddBookDropdown } from '@/components/add-book-dropdown';
 import { useBooks, useBookOperations, getNextStatus } from '@/hooks/use-books';
+import { getRouteForAddMode } from '@/lib/add-book-utils';
 import { useSeries } from '@/hooks/use-series';
 import { useFamily } from '@/hooks/use-family';
 import { useThemeColor } from '@/hooks/use-theme-color';
@@ -107,9 +109,28 @@ export default function BooksScreen() {
     [removeBook, t]
   );
 
+  const [addMenuVisible, setAddMenuVisible] = useState(false);
+  const addButtonRef = useRef<View>(null);
+  const [addButtonLayout, setAddButtonLayout] = useState<{
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  } | undefined>();
+
   const handleAddBook = useCallback(() => {
-    router.push('/book/add');
-  }, [router]);
+    addButtonRef.current?.measureInWindow((x, y, width, height) => {
+      setAddButtonLayout({ x, y, width, height });
+      setAddMenuVisible(true);
+    });
+  }, []);
+
+  const handleAddMenuSelect = useCallback(
+    (route: string) => {
+      router.push(route);
+    },
+    [router]
+  );
 
   const renderItem = useCallback(
     ({ item }: { item: BookListItem }) => {
@@ -261,12 +282,22 @@ export default function BooksScreen() {
         </View>
         <View style={styles.headerRight}>
           {selectedMemberId && (
-            <Pressable
-              style={[styles.addButton, { backgroundColor: primaryColor }]}
-              onPress={handleAddBook}
-            >
-              <IconSymbol name="plus" size={24} color="#FFFFFF" />
-            </Pressable>
+            <>
+              <View ref={addButtonRef} collapsable={false}>
+                <Pressable
+                  style={[styles.addButton, { backgroundColor: primaryColor }]}
+                  onPress={handleAddBook}
+                >
+                  <IconSymbol name="plus" size={24} color="#FFFFFF" />
+                </Pressable>
+              </View>
+              <AddBookDropdown
+                visible={addMenuVisible}
+                onDismiss={() => setAddMenuVisible(false)}
+                onSelect={handleAddMenuSelect}
+                buttonLayout={addButtonLayout}
+              />
+            </>
           )}
           <Pressable
             style={styles.settingsButton}

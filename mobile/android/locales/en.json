@@ -111,6 +111,8 @@
     "addingFor": "Adding book for:",
     "addBook": "Add Book",
     "adding": "Adding...",
+    "addSingleBook": "Add Single Book",
+    "batchTakePhotos": "Batch: Take Photos",
     "titleRequired": "Please enter a book title.",
     "authorRequired": "Please enter an author name.",
     "addCoverImage": "Add Cover Image",
@@ -285,5 +287,22 @@
   },
   "familyManagement": {
     "title": "Family Management"
+  },
+  "addBatch": {
+    "captureTitle": "Capture Book Covers",
+    "captureHint": "Take a photo of each book cover. Choose Continue to add more or Stop when finished.",
+    "done": "Done",
+    "continue": "Continue",
+    "stop": "Stop",
+    "photoCaptured": "Photo captured",
+    "photoTakenSoFar_one": "1 photo taken so far",
+    "photoTakenSoFar_other": "{{count}} photos taken so far",
+    "addAnother": "Add Another",
+    "bookXOfY": "Book {{current}} of {{total}}",
+    "skip": "Skip",
+    "noPhotosHint": "Take at least one photo before continuing.",
+    "permissionMessage": "Camera access is required to capture book covers.",
+    "grantPermission": "Grant Permission",
+    "photosCaptured": "{{count}} photos"
   }
 }

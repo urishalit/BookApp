@@ -46,6 +46,7 @@ const MAPPING = {
   'photo': 'photo-library',
   'camera': 'photo-camera',
   'camera.fill': 'camera-alt',
+  'photo.on.rectangle.angled': 'collections',
   'calendar': 'calendar-today',
   'gearshape.fill': 'settings',
   'rectangle.portrait.and.arrow.right': 'logout',

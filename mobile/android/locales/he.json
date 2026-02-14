@@ -111,6 +111,8 @@
     "addingFor": "מוסיף ספר עבור:",
     "addBook": "הוסף ספר",
     "adding": "מוסיף...",
+    "addSingleBook": "הוסף ספר בודד",
+    "batchTakePhotos": "מנה: צלם תמונות",
     "titleRequired": "אנא הכנס כותרת ספר.",
     "authorRequired": "אנא הכנס שם מחבר.",
     "addCoverImage": "הוסף תמונת עטיפה",
@@ -285,5 +287,22 @@
   },
   "familyManagement": {
     "title": "ניהול משפחה"
+  },
+  "addBatch": {
+    "captureTitle": "צלם עטיפות ספרים",
+    "captureHint": "צלם תמונה של כל עטיפת ספר. בחר המשך להוספת עוד או עצור כשסיימת.",
+    "done": "סיום",
+    "continue": "המשך",
+    "stop": "עצור",
+    "photoCaptured": "תמונה נשמרה",
+    "photoTakenSoFar_one": "תמונה אחת צולמה עד כה",
+    "photoTakenSoFar_other": "{{count}} תמונות צולמו עד כה",
+    "addAnother": "הוסף עוד",
+    "bookXOfY": "ספר {{current}} מתוך {{total}}",
+    "skip": "דלג",
+    "noPhotosHint": "צלם לפחות תמונה אחת לפני המשך.",
+    "permissionMessage": "נדרשת גישה למצלמה כדי לצלם עטיפות ספרים.",
+    "grantPermission": "אשר הרשאה",
+    "photosCaptured": "{{count}} תמונות"
   }
 }
