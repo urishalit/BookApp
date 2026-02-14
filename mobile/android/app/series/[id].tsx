@@ -28,6 +28,7 @@ import { useFamilyStore } from '@/stores/family-store';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { getGenresByFrequency } from '@/constants/genres';
 import { getSeriesCoverFromBooks } from '@/lib/series-cover-utils';
+import { computeNextSeriesOrder } from '@/lib/series-next-order';
 import { uploadSeriesCover } from '@/lib/storage';
 import type { SeriesBookDisplay } from '@/types/models';
 
@@ -60,7 +61,7 @@ export default function SeriesDetailScreen() {
 
   // Compute genres from all books in series, sorted by frequency
   const seriesGenres = useMemo(() => {
-    const bookGenres = books.map(b => b.genres);
+    const bookGenres = (books ?? []).map(b => b.genres);
     return getGenresByFrequency(bookGenres);
   }, [books]);
 
@@ -335,10 +336,12 @@ export default function SeriesDetailScreen() {
 
   // Get existing Google Books IDs to prevent duplicates
   const existingBookIds = useMemo(() => {
-    return books
+    return (books ?? [])
       .map((book) => book.googleBooksId)
-      .filter((id): id is string => !!id);
+      .filter((bid): bid is string => !!bid);
   }, [books]);
+
+  const nextOrder = useMemo(() => computeNextSeriesOrder(books), [books]);
 
   if (isLoading) {
     return (
@@ -526,7 +529,7 @@ export default function SeriesDetailScreen() {
       {/* Books Section Header */}
       <View style={styles.sectionHeader}>
         <ThemedText type="subtitle" style={styles.sectionTitle}>
-          {t('seriesDetail.booksSection', { count: books.length })}
+          {t('seriesDetail.booksSection', { count: (books ?? []).length })}
         </ThemedText>
         <Pressable
           style={[styles.searchBooksButton, { borderColor: primaryColor }]}
@@ -540,7 +543,7 @@ export default function SeriesDetailScreen() {
       </View>
 
       {/* Empty State for Books */}
-      {books.length === 0 && (
+      {(books ?? []).length === 0 && (
         <View style={[styles.emptyBooks, { backgroundColor: cardBg, borderColor }]}>
           <IconSymbol name="book.fill" size={40} color={subtitleColor} />
           <ThemedText style={[styles.emptyBooksText, { color: subtitleColor }]}>
@@ -570,7 +573,7 @@ export default function SeriesDetailScreen() {
   return (
     <ThemedView style={styles.container}>
       <FlatList
-        data={books}
+        data={books ?? []}
         renderItem={renderBook}
         keyExtractor={(item) => item.id}
         ListHeaderComponent={renderHeader}
@@ -583,6 +586,8 @@ export default function SeriesDetailScreen() {
         onClose={() => setIsSearchModalOpen(false)}
         onBooksSelected={handleBooksAdded}
         existingBookIds={existingBookIds}
+        seriesId={id}
+        nextOrder={nextOrder}
       />
       {/* Cover Picker Modal: pick from books in series */}
       <Modal
@@ -601,7 +606,7 @@ export default function SeriesDetailScreen() {
             </Pressable>
           </View>
           <FlatList
-            data={books.filter((b) => b.thumbnailUrl)}
+            data={(books ?? []).filter((b) => b.thumbnailUrl)}
             keyExtractor={(item) => item.id}
             numColumns={2}
             contentContainerStyle={styles.coverPickerList}
@@ -625,7 +630,7 @@ export default function SeriesDetailScreen() {
               </Pressable>
             )}
           />
-          {books.filter((b) => b.thumbnailUrl).length === 0 && (
+          {(books ?? []).filter((b) => b.thumbnailUrl).length === 0 && (
             <View style={styles.coverPickerEmpty}>
               <IconSymbol name="book.fill" size={48} color={subtitleColor} />
               <ThemedText style={[styles.coverPickerEmptyText, { color: subtitleColor }]}>

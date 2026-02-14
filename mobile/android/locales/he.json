@@ -301,7 +301,12 @@
     "noResults": "לא נמצאו ספרים",
     "selected": "{{count}} נבחרו",
     "alreadyInSeries": "כבר בסדרה",
-    "failedToAdd": "הוספת הספרים לסדרה נכשלה"
+    "failedToAdd": "הוספת הספרים לסדרה נכשלה",
+    "tabSearch": "חיפוש",
+    "tabAddBook": "הוסף ספר",
+    "addAnotherBook": "להוסיף ספר נוסף?",
+    "addAnother": "הוסף עוד",
+    "bookNumberRequired": "אנא הזן את מספר הספר בסדרה (1 ומעלה)."
   },
   "memberPicker": {
     "selectMember": "בחר בן משפחה",

@@ -301,7 +301,12 @@
     "noResults": "No books found",
     "selected": "{{count}} selected",
     "alreadyInSeries": "Already in series",
-    "failedToAdd": "Failed to add books to series"
+    "failedToAdd": "Failed to add books to series",
+    "tabSearch": "Search",
+    "tabAddBook": "Add book",
+    "addAnotherBook": "Add another book?",
+    "addAnother": "Add another",
+    "bookNumberRequired": "Please enter the book number in the series (1 or higher)."
   },
   "memberPicker": {
     "selectMember": "Select Member",
