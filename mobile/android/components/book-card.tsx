@@ -4,6 +4,7 @@ import { Image } from 'expo-image';
 import { ThemedText } from '@/components/themed-text';
 import { BookStatusBadge } from '@/components/book-status-badge';
 import { GenreBadgeList } from '@/components/genre-badge';
+import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import type { MemberBook, SeriesBookDisplay } from '@/types/models';
 
@@ -13,11 +14,12 @@ interface BookCardProps {
   onPress?: () => void;
   onLongPress?: () => void;
   onStatusPress?: () => void;
+  onRemove?: () => void;
 }
 
 const PLACEHOLDER_COVER = 'https://via.placeholder.com/128x192/E5D4C0/8B5A2B?text=No+Cover';
 
-export function BookCard({ book, seriesName, onPress, onLongPress, onStatusPress }: BookCardProps) {
+export function BookCard({ book, seriesName, onPress, onLongPress, onStatusPress, onRemove }: BookCardProps) {
   const cardBackground = useThemeColor({}, 'background');
   const borderColor = useThemeColor(
     { light: '#E5D4C0', dark: '#2D3748' },
@@ -29,67 +31,85 @@ export function BookCard({ book, seriesName, onPress, onLongPress, onStatusPress
   );
 
   return (
-    <Pressable
-      onPress={onPress}
-      onLongPress={onLongPress}
-      style={({ pressed }) => [
+    <View
+      style={[
         styles.container,
         {
           backgroundColor: cardBackground,
           borderColor: borderColor,
-          opacity: pressed ? 0.8 : 1,
         },
       ]}
     >
-      {/* Book Cover */}
-      <View style={styles.coverContainer}>
-        <Image
-          source={{ uri: book.thumbnailUrl || PLACEHOLDER_COVER }}
-          style={styles.cover}
-          contentFit="cover"
-          transition={200}
-        />
-      </View>
-
-      {/* Book Info */}
-      <View style={styles.content}>
-        <View style={styles.titleSection}>
-          <ThemedText type="subtitle" style={styles.title} numberOfLines={2}>
-            {book.title}
-          </ThemedText>
-          <ThemedText style={[styles.author, { color: subtitleColor }]} numberOfLines={1}>
-            {book.year ? `${book.author} (${book.year})` : book.author}
-          </ThemedText>
-          {book.genres && book.genres.length > 0 && (
-            <View style={styles.genresRow}>
-              <GenreBadgeList genres={book.genres} size="small" maxDisplay={2} />
-            </View>
-          )}
-        </View>
-
-        <View style={styles.footer}>
-          <BookStatusBadge
-            status={book.status}
-            size="small"
-            onPress={onStatusPress}
+      <Pressable
+        onPress={onPress}
+        onLongPress={onLongPress}
+        style={({ pressed }) => [
+          styles.mainArea,
+          { opacity: pressed ? 0.8 : 1 },
+        ]}
+      >
+        {/* Book Cover */}
+        <View style={styles.coverContainer}>
+          <Image
+            source={{ uri: book.thumbnailUrl || PLACEHOLDER_COVER }}
+            style={styles.cover}
+            contentFit="cover"
+            transition={200}
           />
-          {(seriesName || book.seriesOrder) && (
-            <View style={styles.seriesInfo}>
-              {seriesName && (
-                <ThemedText style={[styles.seriesName, { color: subtitleColor }]} numberOfLines={1}>
-                  {seriesName}
-                </ThemedText>
-              )}
-              {book.seriesOrder && (
-                <ThemedText style={[styles.seriesOrder, { color: subtitleColor }]}>
-                  #{book.seriesOrder}
-                </ThemedText>
-              )}
-            </View>
-          )}
         </View>
-      </View>
-    </Pressable>
+
+        {/* Book Info */}
+        <View style={styles.content}>
+          <View style={styles.titleSection}>
+            <ThemedText type="subtitle" style={styles.title} numberOfLines={2}>
+              {book.title}
+            </ThemedText>
+            <ThemedText style={[styles.author, { color: subtitleColor }]} numberOfLines={1}>
+              {book.year ? `${book.author} (${book.year})` : book.author}
+            </ThemedText>
+            {book.genres && book.genres.length > 0 && (
+              <View style={styles.genresRow}>
+                <GenreBadgeList genres={book.genres} size="small" maxDisplay={2} />
+              </View>
+            )}
+          </View>
+
+          <View style={styles.footer}>
+            <BookStatusBadge
+              status={book.status}
+              size="small"
+              onPress={onStatusPress}
+            />
+            {(seriesName || book.seriesOrder) && (
+              <View style={styles.seriesInfo}>
+                {seriesName && (
+                  <ThemedText style={[styles.seriesName, { color: subtitleColor }]} numberOfLines={1}>
+                    {seriesName}
+                  </ThemedText>
+                )}
+                {book.seriesOrder && (
+                  <ThemedText style={[styles.seriesOrder, { color: subtitleColor }]}>
+                    #{book.seriesOrder}
+                  </ThemedText>
+                )}
+              </View>
+            )}
+          </View>
+        </View>
+      </Pressable>
+      {onRemove && (
+        <Pressable
+          onPress={onRemove}
+          style={({ pressed }) => [
+            styles.removeButton,
+            { opacity: pressed ? 0.7 : 1 },
+          ]}
+          hitSlop={8}
+        >
+          <IconSymbol name="trash" size={18} color="#E57373" />
+        </Pressable>
+      )}
+    </View>
   );
 }
 
@@ -106,6 +126,14 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.08,
     shadowRadius: 8,
     elevation: 3,
+  },
+  mainArea: {
+    flex: 1,
+    flexDirection: 'row',
+  },
+  removeButton: {
+    justifyContent: 'center',
+    paddingLeft: 8,
   },
   coverContainer: {
     width: 64,

@@ -247,7 +247,9 @@
     "addToLibraryMessage": "\"{{title}}\" is not in your library yet. Add it to view details and track your reading progress.",
     "addToLibraryButton": "Add to Library",
     "failedToAddBook": "Failed to add book to library",
-    "failedToUpdateGenres": "Failed to update genres"
+    "failedToUpdateGenres": "Failed to update genres",
+    "removeBookFromSeries": "Remove Book",
+    "removeBookFromSeriesConfirm": "Remove \"{{title}}\" from this series and your library?"
   },
   "errors": {
     "generic": "Something went wrong",

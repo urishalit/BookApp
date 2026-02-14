@@ -41,7 +41,7 @@ export default function SeriesDetailScreen() {
   const family = useFamilyStore((s) => s.family);
   const { series, books, isLoading } = useSeriesDetail(id);
   const { editSeries, removeSeries, updateSeriesStatus } = useSeriesOperations();
-  const { addOrUpdateBookStatus, updateSeriesBooksGenres, addBooksToSeries } = useBookOperations();
+  const { addOrUpdateBookStatus, updateSeriesBooksGenres, addBooksToSeries, removeBook, updateBookMetadata } = useBookOperations();
 
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState('');
@@ -198,6 +198,33 @@ export default function SeriesDetailScreen() {
     [id, updateSeriesBooksGenres, t]
   );
 
+  const handleRemoveBook = useCallback(
+    (book: SeriesBookDisplay) => {
+      Alert.alert(
+        t('seriesDetail.removeBookFromSeries'),
+        t('seriesDetail.removeBookFromSeriesConfirm', { title: book.title }),
+        [
+          { text: t('common.cancel'), style: 'cancel' },
+          {
+            text: t('common.remove'),
+            style: 'destructive',
+            onPress: async () => {
+              try {
+                if (book.libraryEntryId) {
+                  await removeBook(book.libraryEntryId);
+                }
+                await updateBookMetadata(book.id, { seriesId: undefined, seriesOrder: undefined }, { previousSeriesId: id });
+              } catch (err) {
+                Alert.alert(t('common.error'), t('books.failedToRemove'));
+              }
+            },
+          },
+        ]
+      );
+    },
+    [id, removeBook, updateBookMetadata, t]
+  );
+
   const handleBooksAdded = useCallback(
     async (selectedBooks: any[]) => {
       if (!id) return;
@@ -349,6 +376,18 @@ export default function SeriesDetailScreen() {
 
   const nextOrder = useMemo(() => computeNextSeriesOrder(books), [books]);
 
+  const renderBook = useCallback(
+    ({ item }: { item: SeriesBookDisplay }) => (
+      <BookCard
+        book={item}
+        onPress={() => handleBookPress(item)}
+        onStatusPress={() => handleStatusChange(item)}
+        onRemove={isEditing ? () => handleRemoveBook(item) : undefined}
+      />
+    ),
+    [isEditing, handleBookPress, handleStatusChange, handleRemoveBook]
+  );
+
   if (isLoading) {
     return (
       <ThemedView style={styles.loadingContainer}>
@@ -372,14 +411,6 @@ export default function SeriesDetailScreen() {
       </ThemedView>
     );
   }
-
-  const renderBook = ({ item }: { item: SeriesBookDisplay }) => (
-    <BookCard
-      book={item}
-      onPress={() => handleBookPress(item)}
-      onStatusPress={() => handleStatusChange(item)}
-    />
-  );
 
   const renderHeader = () => (
     <>
