@@ -70,16 +70,26 @@ export default function SeriesDetailScreen() {
     setLocalGenres(seriesGenres);
   }, [seriesGenres]);
 
+  const seriesIsInLibrary = useMemo(
+    () => (books ?? []).some((b) => b.isInLibrary),
+    [books]
+  );
+
   const handleBookPress = useCallback(
-    (book: SeriesBookDisplay) => {
-      // Only navigate to book detail if the book is in the member's library
+    async (book: SeriesBookDisplay) => {
       if (book.isInLibrary && book.libraryEntryId) {
-        router.push({
-          pathname: '/book/[id]',
-          params: { id: book.id },
-        });
+        // Book already in library - navigate directly
+        router.push({ pathname: '/book/[id]', params: { id: book.id } });
+      } else if (seriesIsInLibrary) {
+        // Series is in library - silently add book and navigate (no prompt)
+        try {
+          await addOrUpdateBookStatus(book.id, 'to-read', undefined);
+          router.push({ pathname: '/book/[id]', params: { id: book.id } });
+        } catch (err) {
+          Alert.alert(t('common.error'), t('seriesDetail.failedToAddBook'));
+        }
       } else {
-        // Book not in library - prompt to add it
+        // Series not in library - prompt to add
         Alert.alert(
           t('seriesDetail.addToLibraryTitle'),
           t('seriesDetail.addToLibraryMessage', { title: book.title }),
@@ -90,11 +100,7 @@ export default function SeriesDetailScreen() {
               onPress: async () => {
                 try {
                   await addOrUpdateBookStatus(book.id, 'to-read', undefined);
-                  // After adding, navigate to the book detail
-                  router.push({
-                    pathname: '/book/[id]',
-                    params: { id: book.id },
-                  });
+                  router.push({ pathname: '/book/[id]', params: { id: book.id } });
                 } catch (err) {
                   Alert.alert(t('common.error'), t('seriesDetail.failedToAddBook'));
                 }
@@ -104,7 +110,7 @@ export default function SeriesDetailScreen() {
         );
       }
     },
-    [router, addOrUpdateBookStatus]
+    [router, addOrUpdateBookStatus, seriesIsInLibrary, t]
   );
 
   const handleStatusChange = useCallback(
